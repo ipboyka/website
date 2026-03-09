@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gezi Haritam</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f4f7f6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        .logo-section {
+            position: absolute;
+            top: 15%; 
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .placeholder-logo {
+            width: 60px;
+            height: 60px;
+            background-color: #e0e0e0;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #888;
+            font-size: 24px;
+        }
+
+        .logo-text {
+            font-size: 36px;
+            font-weight: 700;
+            color: #333;
+            letter-spacing: 1px;
+        }
+
+        .container {
+            display: flex;
+            gap: 30px;
+            flex-wrap: wrap; 
+            justify-content: center;
+        }
+
+        .nav-btn {
+            width: 220px;
+            height: 220px;
+            background-color: #ffffff;
+            border: 2px solid #e0e0e0;
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            padding: 20px;
+        }
+
+        .nav-btn:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 20px rgba(0,0,0,0.1);
+            border-color: #007bff;
+        }
+
+        .icon-area {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            margin-bottom: 15px;
+        }
+
+        .plates-area {
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .plate {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 70px;
+            background: #fff;
+            border: 2px solid #333;
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-weight: 700;
+            font-size: 14px;
+            color: #333;
+        }
+
+        .check-icon {
+            color: #28a745; 
+            font-size: 14px;
+        }
+
+        .map-icon {
+            font-size: 4.5rem;
+            color: #d9534f;
+        }
+
+        .spinner-icon {
+            font-size: 4.5rem;
+            color: #007bff;
+            animation-duration: 4s; 
+        }
+
+        .btn-text {
+            font-size: 16px;
+            font-weight: 600;
+            color: #4a4a4a;
+            text-align: center;
+        }
+
+        .auth-section {
+            position: absolute;
+            bottom: 8%; 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .auth-text {
+            font-size: 16px;
+            color: #6c757d; 
+            font-weight: 500;
+        }
+
+        .auth-buttons {
+            display: flex;
+            gap: 20px; 
+        }
+
+        .auth-btn {
+            padding: 10px 30px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .login-btn {
+            background-color: transparent;
+            color: #007bff;
+            border: 2px solid #007bff;
+        }
+
+        .login-btn:hover {
+            background-color: #007bff;
+            color: #fff;
+        }
+
+        .register-btn {
+            background-color: #007bff;
+            color: #fff;
+            border: 2px solid #007bff;
+        }
+
+        .register-btn:hover {
+            background-color: #0056b3;
+            border-color: #0056b3;
+        }
+
+        /* --- YENİ EKLENEN: GİRİŞ YAP / KAYIT OL PENCERESİ (MODAL) --- */
+        .modal {
+            display: none; 
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 12px;
+            width: 350px;
+            text-align: center;
+            position: relative;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 24px;
+            cursor: pointer;
+            color: #888;
+        }
+
+        .close-btn:hover {
+            color: #333;
+        }
+
+        .modal-input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .modal-title {
+            margin-bottom: 15px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="logo-section">
+        <div class="placeholder-logo">
+            <i class="fa-regular fa-image"></i> </div>
+        <h1 class="logo-text">Gezi Haritam</h1>
+    </div>
+
+    <div class="container">
+        <button class="nav-btn">
+            <div class="icon-area plates-area" id="visitedPlatesContainer">
+                </div>
+            <span class="btn-text" id="visitedCountText">Gezdiğim Şehirler (0)</span>
+        </button>
+        </button>
+
+        <button class="nav-btn" onclick="window.location.href='trharita.html'">
+            <div class="icon-area">
+                <i class="fa-solid fa-map-location-dot map-icon"></i>
+            </div>
+            <span class="btn-text">Türkiye Haritası</span>
+        </button>
+
+        <button class="nav-btn">
+            <div class="icon-area">
+                <i class="fa-solid fa-spinner fa-spin spinner-icon"></i>
+            </div>
+            <span class="btn-text">Gezeceğim Şehirler</span>
+        </button>
+    </div>
+
+    <div class="auth-section">
+        <span class="auth-text" id="authStatusText">İlerlemenizi kaybetmek istemiyorsanız...</span>
+        <div class="auth-buttons" id="authButtonsContainer">
+            <button class="auth-btn login-btn" id="openLoginBtn">Giriş Yap</button>
+            <button class="auth-btn register-btn" id="openRegisterBtn">Kaydol</button>
+        </div>
+    </div>
+
+    <div id="authModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" id="closeModalBtn">&times;</span>
+            <h2 class="modal-title" id="modalTitle">Giriş Yap</h2>
+            
+            <input type="email" id="emailInput" class="modal-input" placeholder="E-posta Adresi" required>
+            <input type="password" id="passwordInput" class="modal-input" placeholder="Şifre (En az 6 hane)" required>
+            
+            <p id="errorMessage" style="color: red; font-size: 13px; display: none; margin: 5px 0;"></p>
+            
+            <button id="submitAuthBtn" class="auth-btn register-btn" style="width: 100%; margin-top: 15px;">Onayla</button>
+        </div>
+    </div>
+
+    <script type="module">
+        // Firebase kütüphanelerini internetten (CDN) çekiyoruz
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+        // Senin Firebase Anahtarların
+        const firebaseConfig = {
+            apiKey: "AIzaSyAKpk8odLUEZTJh_4qvyrcu59t4eoNNIe8",
+            authDomain: "tripturkey-79e75.firebaseapp.com",
+            projectId: "tripturkey-79e75",
+            storageBucket: "tripturkey-79e75.firebasestorage.app",
+            messagingSenderId: "69790477258",
+            appId: "1:69790477258:web:6ad1f6bc4f9bc437e2bd33",
+            measurementId: "G-7YGJJEPL8Y"
+        };
+
+        // Firebase'i başlat
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // HTML Elementleri
+        const authModal = document.getElementById('authModal');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const modalTitle = document.getElementById('modalTitle');
+        const submitAuthBtn = document.getElementById('submitAuthBtn');
+        const emailInput = document.getElementById('emailInput');
+        const passwordInput = document.getElementById('passwordInput');
+        const errorMessage = document.getElementById('errorMessage');
+        
+        let isLoginMode = true; // Modalın giriş mi yoksa kayıt modu mu olduğunu tutar
+
+        // Buton Dinleyicilerini Ekleme Fonksiyonu
+        function attachModalListeners() {
+            const openLoginBtn = document.getElementById('openLoginBtn');
+            const openRegisterBtn = document.getElementById('openRegisterBtn');
+
+            if(openLoginBtn) {
+                openLoginBtn.addEventListener('click', () => {
+                    isLoginMode = true;
+                    modalTitle.innerText = "Giriş Yap";
+                    submitAuthBtn.innerText = "Giriş Yap";
+                    authModal.style.display = "flex";
+                    errorMessage.style.display = "none";
+                });
+            }
+
+            if(openRegisterBtn) {
+                openRegisterBtn.addEventListener('click', () => {
+                    isLoginMode = false;
+                    modalTitle.innerText = "Yeni Hesap Oluştur";
+                    submitAuthBtn.innerText = "Kaydol";
+                    authModal.style.display = "flex";
+                    errorMessage.style.display = "none";
+                });
+            }
+        }
+
+        // Modalı Kapatma İşlemleri
+        closeModalBtn.addEventListener('click', () => authModal.style.display = "none");
+        window.addEventListener('click', (e) => {
+            if (e.target === authModal) authModal.style.display = "none";
+        });
+
+        // Form Gönderme (Kayıt veya Giriş)
+        submitAuthBtn.addEventListener('click', async () => {
+            const email = emailInput.value;
+            const password = passwordInput.value;
+            errorMessage.style.display = "none";
+
+            if (!email || !password) {
+                errorMessage.innerText = "Lütfen e-posta ve şifre girin.";
+                errorMessage.style.display = "block";
+                return;
+            }
+
+            try {
+                if (isLoginMode) {
+                    // GİRİŞ YAP
+                    await signInWithEmailAndPassword(auth, email, password);
+                } else {
+                    // KAYIT OL
+                    await createUserWithEmailAndPassword(auth, email, password);
+                }
+                authModal.style.display = "none"; // Başarılıysa pencereyi kapat
+                emailInput.value = "";
+                passwordInput.value = "";
+            } catch (error) {
+                console.error(error);
+                if(error.code === 'auth/email-already-in-use') errorMessage.innerText = "Bu e-posta zaten kullanılıyor.";
+                else if(error.code === 'auth/invalid-credential') errorMessage.innerText = "E-posta veya şifre hatalı.";
+                else if(error.code === 'auth/weak-password') errorMessage.innerText = "Şifre en az 6 karakter olmalıdır.";
+                else errorMessage.innerText = "Bir hata oluştu: " + error.message;
+                errorMessage.style.display = "block";
+            }
+        });
+
+        // --- KULLANICI GİRİŞ YAPTIĞINDA / ÇIKTIĞINDA OLACAKLAR ---
+        onAuthStateChanged(auth, async (user) => {
+            const statusText = document.getElementById('authStatusText');
+            const buttonsContainer = document.getElementById('authButtonsContainer');
+
+            if (user) {
+                // Kullanıcı Giriş Yaptıysa
+                statusText.innerText = `Hoş geldin, ${user.email}`;
+                buttonsContainer.innerHTML = `<button class="auth-btn login-btn" id="logoutBtn" style="border-color: #dc3545; color: #dc3545;">Çıkış Yap</button>`;
+                
+                // Çıkış Butonuna Tıklanma Olayı
+                document.getElementById('logoutBtn').addEventListener('click', () => {
+                    signOut(auth);
+                });
+
+                // --- VİTRİN GÜNCELLEME: PLAKALARI VE SAYACI EKRANA YANSITMA ---
+        function updateVisitedPlatesUI() {
+            const container = document.getElementById('visitedPlatesContainer');
+            const countText = document.getElementById('visitedCountText');
+            
+            // Hafızadan güncel listeyi al
+            const visitedCities = JSON.parse(localStorage.getItem('visitedCities')) || [];
+            
+            // Sayacı güncelle
+            countText.innerText = `Gezdiğim Şehirler (${visitedCities.length})`;
+            
+            // İçeriyi temizle
+            container.innerHTML = '';
+            
+            // Eğer hiç şehir gezilmemişse boş bir plaka göster
+            if (visitedCities.length === 0) {
+                container.innerHTML = `<div class="plate" style="border: 2px dashed #ccc; color: #999; justify-content: center;"><span>--</span></div>`;
+                return;
+            }
+
+            // Kutuya sığması için sadece en son eklenen 3 şehri gösterelim
+            const displayCities = visitedCities.slice(-3).reverse(); 
+            
+            displayCities.forEach(plaka => {
+                const plateDiv = document.createElement('div');
+                plateDiv.className = 'plate';
+                plateDiv.innerHTML = `<span>${plaka}</span> <i class="fa-solid fa-check check-icon"></i>`;
+                container.appendChild(plateDiv);
+            });
+        }
+        
+        // Sayfa açıldığında bu fonksiyonu çalıştır
+        updateVisitedPlatesUI();
+
+                // Veritabanından verilerini çekip tarayıcı hafızasına aktaralım
+                const userDocRef = doc(db, "users", user.uid);
+                const docSnap = await getDoc(userDocRef);
+                
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    if (data.visitedCities) {
+                        localStorage.setItem('visitedCities', JSON.stringify(data.visitedCities));
+                        updateVisitedPlatesUI(); // <--- EKLENEN SATIR (Buluttan gelince ekranı yenile)
+                    }
+                } else {
+                    // Yeni hesapsa, şu anki local hafızayı veritabanına yedekle
+                    const localCities = JSON.parse(localStorage.getItem('visitedCities')) || [];
+                    await setDoc(userDocRef, { visitedCities: localCities });
+                }
+
+            } else {
+                // Kullanıcı Çıkış Yaptıysa (veya hiç girmediyse)
+                statusText.innerText = "İlerlemenizi kaybetmek istemiyorsanız...";
+                buttonsContainer.innerHTML = `
+                    <button class="auth-btn login-btn" id="openLoginBtn">Giriş Yap</button>
+                    <button class="auth-btn register-btn" id="openRegisterBtn">Kaydol</button>
+                `;
+                attachModalListeners(); // Butonlar yeniden oluşturulduğu için dinleyicileri tekrar ekliyoruz
+            }
+        });
+
+    </script>
+</body>
+</html>

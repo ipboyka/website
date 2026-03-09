@@ -1072,6 +1072,85 @@
         }
 
 
+        /* ======================================================= */
+        /* --- EKRAN BOYUTLARINA GÖRE OTOMATİK UYUM (RESPONSIVE) --- */
+        /* ======================================================= */
+
+        /* 1. KADEME: Standart Laptoplar (1440px ve 1366px genişlikler için) */
+        @media (max-width: 1450px) {
+            .header {
+                margin-top: 4vh; 
+                margin-bottom: 4vh; /* Üstteki boşlukları daraltarak ekrandan tasarruf et */
+            }
+            .content-area {
+                height: 70vh; 
+            }
+            .info-panel {
+                left: 20px; /* Sabit matematik hesabını iptal edip ekranın soluna güvenle sabitler */
+                width: 340px; /* Paneli laptop için biraz küçült */
+            }
+            .map-container {
+                max-width: 850px; /* Haritayı ekranın dışına taşmaması için küçült */
+            }
+            .content-area.active .info-panel {
+                transform: translateX(0); /* Zaten sola sabitlediğimiz için ekstra dışarı kaymasını engeller */
+            }
+            .content-area.active .map-container {
+                transform: translateX(180px); /* Harita, panelin altında kalmasın diye sağa daha nazik kayar */
+            }
+            .content-area.expanded .info-panel {
+                width: 580px; /* Şehre tıklandığında açılan dev panelin ekranı yutmasını engeller */
+            }
+            .content-area.expanded .map-container {
+                max-width: 500px;
+                margin-left: 200px;
+            }
+        }
+
+        /* 2. KADEME: Küçük Laptoplar ve Yatay Tabletler (1200px ve altı için) */
+        @media (max-width: 1200px) {
+            .header { 
+                margin-top: 2vh; 
+                margin-bottom: 2vh; 
+            }
+            .title {
+                font-size: 24px;
+            }
+            .info-panel { 
+                width: 300px; 
+                padding: 20px; 
+            }
+            .map-container { 
+                max-width: 650px; 
+                padding: 20px; 
+            }
+            .content-area.active .map-container {
+                transform: translateX(140px); 
+            }
+            .content-area.expanded .info-panel {
+                width: 480px; 
+            }
+            .content-area.expanded .map-container {
+                max-width: 400px;
+                margin-left: 120px;
+            }
+            #notesMemoriesToggles {
+                gap: 5px; /* Paneller daraldığı için butonları yaklaştırır */
+            }
+        }
+
+        /* 3. KADEME: Yükseklik Koruması (Dikeyde basık ekranlar için) */
+        /* Eğer ekranın boyu kısaysa, devasa açılır pencerelerin (modalların) aşağıdan kesilmesini önler */
+        @media (max-height: 800px) {
+            .note-modal {
+                max-height: 90vh; /* Modalın ekran boyunu geçmesini engeller */
+            }
+            .note-modal-body {
+                max-height: 50vh; /* İçerik uzadığında kutunun içinde kaydırma çubuğu (scroll) çıkartır */
+            }
+        }
+
+
 
     </style>
 </head>

@@ -232,6 +232,98 @@
             margin-bottom: 15px;
             color: #333;
         }
+
+        /* ======================================================= */
+        /* --- EKRAN BOYUTLARINA GÖRE OTOMATİK UYUM (RESPONSIVE) --- */
+        /* ======================================================= */
+
+        /* 1. KADEME: Standart Laptoplar (1440px ve altı) */
+        @media (max-width: 1450px) {
+            .logo-section {
+                top: 10%; /* Logoyu biraz daha yukarı çek */
+            }
+            .logo-text {
+                font-size: 32px; /* Logo yazısını çok hafif küçült */
+            }
+            .nav-btn {
+                width: 190px; /* Butonları küçült (Orijinal: 220px) */
+                height: 190px;
+                padding: 15px;
+            }
+            .map-icon, .spinner-icon {
+                font-size: 4rem; /* Simgeleri küçült */
+            }
+            .btn-text {
+                font-size: 15px; /* Yazıları küçült */
+            }
+            .plate {
+                width: 65px; /* Plaka kutularını biraz daralt */
+                font-size: 13px;
+                padding: 2px 4px;
+            }
+            .auth-section {
+                bottom: 5%; /* Alt kısmı biraz daha aşağı indir, yer kazandır */
+            }
+        }
+
+        /* 2. KADEME: Küçük Laptoplar, Yatay Tabletler (1100px ve altı) */
+        @media (max-width: 1100px) {
+            .logo-section {
+                top: 8%;
+            }
+            .placeholder-logo {
+                width: 50px;
+                height: 50px;
+                font-size: 20px;
+            }
+            .logo-text {
+                font-size: 28px;
+            }
+            .container {
+                gap: 20px; /* Butonların arasındaki boşluğu azalt */
+            }
+            .nav-btn {
+                width: 160px; /* Butonları daha da küçült */
+                height: 160px;
+                padding: 10px;
+                border-radius: 15px;
+            }
+            .map-icon, .spinner-icon {
+                font-size: 3.2rem;
+            }
+            .btn-text {
+                font-size: 14px;
+            }
+            .plate {
+                width: 55px;
+                font-size: 12px;
+            }
+            .auth-buttons {
+                gap: 10px; /* Giriş butonları arası boşluğu kıs */
+            }
+            .auth-btn {
+                padding: 8px 20px;
+                font-size: 14px;
+            }
+            .auth-text {
+                font-size: 14px;
+            }
+        }
+
+        /* 3. KADEME: Dikey Koruma (Basık, Kısa Ekranlar İçin) */
+        /* Ekranın yüksekliği çok kısaysa, elemanlar birbirine çarpmasın diye boşlukları daraltır */
+        @media (max-height: 750px) {
+            .logo-section {
+                top: 5%;
+            }
+            .auth-section {
+                bottom: 3%;
+            }
+            .nav-btn {
+                height: 180px; /* Yüksekliği basıklaştır */
+            }
+        }
+        
     </style>
 </head>
 <body>

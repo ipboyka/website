@@ -3591,14 +3591,13 @@
                             hasSelectedCity.classList.remove('selected');
                             
                             const listContainer = document.getElementById('filterListContainer');
-                            if (listContainer) listContainer.style.display = 'flex'; // Gizlenen şehir listesini geri getir
+                            if (listContainer) listContainer.style.display = 'flex'; 
                             
                             if(cityActionBtn) cityActionBtn.style.display = 'none';
                             if(actionBtnsContainer) actionBtnsContainer.style.display = 'none';
                             if(cityNoteBtn) cityNoteBtn.style.display = 'none';
                             if(cityPlate) cityPlate.style.display = 'none';
 
-                            // Bilgi paneli başlığını aktif bölgenin adına geri döndür (Arkada kalan bölgeden ismini bulur)
                             const firstRegionPart = document.querySelector('svg .region-part');
                             if (firstRegionPart && typeof regionsData !== 'undefined') {
                                 const plaka = firstRegionPart.getAttribute('data-plakakodu');
@@ -3623,6 +3622,9 @@
                             document.querySelectorAll('svg .selected, svg .region-part').forEach(el => el.classList.remove('selected', 'region-part'));
                             if (mainSvg) mainSvg.classList.remove('region-cluster-active');
                             applyFilter('regions'); 
+                        } else {
+                            // 3. KADEME (YENİ): Bölgeler ana ekranındayız ve hiçbir şey seçili değil. Boşluğa basılınca Tüm Türkiye'ye dön!
+                            applyFilter('all');
                         }
                     }
                     else {

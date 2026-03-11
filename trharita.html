@@ -1048,6 +1048,43 @@
         svg.filtering-notes-memories g.has-notes path {
             fill: rgba(128, 0, 0, var(--bordo-opacity)) !important;
         }
+
+        /* --- YENİ: BÖLGELER HARİTASI İÇİN DİNAMİK RENKLER (KURŞUNGEÇİRMEZ VERSİYON) --- */
+        svg.filtering-regions [data-plakakodu] path {
+            fill: var(--region-color, #e0e6ed) !important;
+            transition: fill 0.3s ease !important;
+        }
+
+        /* --- YENİ: BÖLGE SEÇİMİNDE GRUP GÖRÜNÜM (KENDİ RENGİYLE) --- */
+        svg.region-cluster-active g.region-part path {
+            fill: var(--active-region-color) !important; /* JS'den gelen kendi bölge rengini alır */
+            stroke: #ffffff !important; 
+            stroke-width: 1.5 !important; 
+            transform: none !important; 
+            filter: none !important; 
+        }
+        svg.region-cluster-active g.region-part:hover path {
+            fill: var(--active-region-color) !important; 
+            filter: brightness(0.85) !important; /* Üzerine gelince rengi kendi tonunda hafifçe koyulaştırır */
+            stroke: #ffffff !important; 
+        }
+
+        /* --- YENİ: BÖLGE İÇİNDE SEÇİLEN ŞEHRİN SARI OLMASI --- */
+        svg.filtering-regions.region-cluster-active g.region-part.selected path {
+            fill: #ffc107 !important; /* Şehri tekrar klasik sarı rengine döndürdük */
+            filter: drop-shadow(0px 8px 6px rgba(0,0,0,0.3)) !important; /* Koyulaştırma (brightness) silindi, sadece orijinal gölge kaldı */
+            transform: translateY(-5px) !important; 
+            stroke: #ffffff !important;
+            stroke-width: 2px !important;
+        }
+        
+        /* Fare ile üzerine gelindiğinde ve tıklanıp seçildiğinde varsayılan kırmızı/sarı efektler çalışsın */
+        svg.filtering-regions [data-plakakodu] path:hover {
+            fill: #d9534f !important; 
+        }
+        svg.filtering-regions [data-plakakodu].selected path {
+            fill: #ffc107 !important; 
+        }
         
         /* Fare ile üzerine gelince kırmızı hover efekti (seçim özelliği) bozulmasın diye: */
         svg.filtering-notes-memories g.has-notes path:hover {
@@ -1150,7 +1187,24 @@
             }
         }
 
-
+        /* --- YENİ: ARAMA ÇUBUĞU TASARIMI --- */
+        .city-search-input {
+            width: 100%;
+            padding: 12px 15px;
+            margin-top: 15px;
+            border: 2px solid #eee;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            color: #333;
+            transition: all 0.3s ease;
+            display: none; /* Başlangıçta gizli durur, sadece listelerde açılır */
+        }
+        .city-search-input:focus {
+            border-color: #007bff;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
+        }
 
     </style>
 </head>
@@ -1168,6 +1222,7 @@
                 <button class="dropdown-item" id="filterAllBtn">Tüm Türkiye</button>
                 <button class="dropdown-item" id="filterVisitedBtn" style="color: #28a745;">Gezdiklerim</button>
                 <button class="dropdown-item" id="filterSavedBtn" style="color: #007bff;">Kaydettiklerim</button>
+                <button class="dropdown-item" id="filterRegionsBtn" style="color: #fd7e14;">Bölgeler</button>
             </div>
         </div>
     </div>
@@ -1181,9 +1236,11 @@
             </div>
             
             <h2 id="selectedCityName">Şehir Bekleniyor...</h2>
-            <p style="color: #888; margin-top: 15px; line-height: 1.5;">
+            <p id="cityPlaceholderText" style="color: #888; margin-top: 15px; line-height: 1.5;">
                 Bu alana ileride seçilen şehirle ilgili gezilecek yerler, notlar ve fotoğraflar eklenecek.
             </p>
+
+            <input type="text" id="citySearchInput" class="city-search-input" placeholder="Şehir ara (Örn: Ankara)">
             
             <button class="action-btn" id="cityActionBtn">
                 Yakından Gör
@@ -1759,6 +1816,31 @@
                 });
             }
 
+            // =========================================================================
+            // YENİ: BÖLGELERİ SAYFA YÜKLENDİĞİNDE SADECE 1 KERE HESAPLA (SIFIR KASMA!)
+            // =========================================================================
+            const regionsData = [
+                { name: "Marmara Bölgesi", color: "#28a745", plates: ["10", "11", "16", "17", "22", "34", "39", "41", "54", "59", "77"] }, 
+                { name: "Ege Bölgesi", color: "#007bff", plates: ["03", "09", "20", "35", "43", "45", "48", "64"] }, 
+                { name: "Akdeniz Bölgesi", color: "#fd7e14", plates: ["01", "07", "15", "31", "32", "33", "46", "80"] }, 
+                { name: "İç Anadolu Bölgesi", color: "#6f42c1", plates: ["06", "18", "26", "38", "40", "42", "50", "51", "58", "66", "68", "70", "71"] }, 
+                { name: "Karadeniz Bölgesi", color: "#20c997", plates: ["05", "08", "14", "19", "28", "29", "37", "52", "53", "55", "57", "60", "61", "67", "69", "74", "78", "81"] }, 
+                { name: "Doğu Anadolu Bölgesi", color: "#dc3545", plates: ["04", "12", "13", "23", "24", "25", "30", "36", "44", "49", "62", "65", "75", "76"] }, 
+                { name: "Güneydoğu Anadolu Bölgesi", color: "#ffc107", plates: ["02", "21", "27", "47", "56", "63", "72", "73", "79"] } 
+            ];
+
+            const plateToRegionColor = {};
+            regionsData.forEach(r => r.plates.forEach(p => plateToRegionColor[p] = r.color));
+
+            // Haritadaki her ile ait bölge rengini arka planda GİZLİCE 1 KERE zerk et
+            cityGroups.forEach(g => {
+                const plaka = g.getAttribute('data-plakakodu');
+                if (plateToRegionColor[plaka]) {
+                    g.style.setProperty('--region-color', plateToRegionColor[plaka]);
+                }
+            });
+            // =========================================================================
+
             function updateCityColorsOnMap() {
                 cityGroups.forEach(group => {
                     const plaka = group.getAttribute('data-plakakodu');
@@ -1775,9 +1857,11 @@
             function updateHeatmapColors() {
                 const isFilteringNotesMemories = mainSvg && mainSvg.classList.contains('filtering-notes-memories');
                 
+                // YENİ: Tüm özel renkleri ve sınıfları sıfırla (Bordo ısı haritası ve Bölge renkleri)
                 cityGroups.forEach(group => {
                     group.classList.remove('has-notes');
                     group.style.removeProperty('--bordo-opacity');
+                    group.style.removeProperty('--region-color'); // YENİ: Bölgeler menüsünden çıkınca renkleri temizler
                 });
 
                 if (!isFilteringNotesMemories) return; 
@@ -1819,9 +1903,20 @@
             }
 
             function applyFilter(filterType) {
-                mainSvg.classList.remove('filtering-visited', 'filtering-saved', 'filtering-notes-memories');
-                const previousSelected = document.querySelector('svg .selected');
-                if (previousSelected) previousSelected.classList.remove('selected');
+                const fragment = document.createDocumentFragment();
+
+                mainSvg.classList.remove('filtering-visited', 'filtering-saved', 'filtering-notes-memories', 'filtering-regions');
+                // YENİ: Seçili olan ne kadar şehir veya bölge parçası varsa hepsini TEK SEFERDE temizler
+                document.querySelectorAll('svg .selected, svg .region-part').forEach(el => {
+                    el.classList.remove('selected', 'region-part');
+                });
+                mainSvg.classList.remove('region-cluster-active');
+
+                // DÜZELTME: Bölge rengini BİLEREK silmiyoruz! CSS zaten hallediyor. Ekranda sarsıntı (kasma) yapmasını tamamen engelledik.
+                cityGroups.forEach(group => {
+                    if(group.classList.contains('has-notes')) group.classList.remove('has-notes');
+                    if(group.style.getPropertyValue('--bordo-opacity')) group.style.removeProperty('--bordo-opacity');
+                });
 
                 const notesTogglesEl = document.getElementById('notesMemoriesToggles');
                 if (notesTogglesEl) notesTogglesEl.style.display = 'none';
@@ -1836,32 +1931,42 @@
 
                 const cityNameEl = document.getElementById('selectedCityName');
                 const cityPlate = document.getElementById('cityPlate');
+                const citySearchInput = document.getElementById('citySearchInput');
 
+                if (citySearchInput) {
+                    citySearchInput.style.display = 'block';
+                    citySearchInput.value = '';
+                    citySearchInput.placeholder = 'Şehir ara (Örn: An)';
+                }
+
+                const cityPlaceholderText = document.getElementById('cityPlaceholderText');
+                if (cityPlaceholderText) cityPlaceholderText.style.display = 'none';
+
+                contentArea.classList.add('active'); 
+                contentArea.classList.remove('expanded');
+                showTurkeyMap();
+                
+                if(cityPlate) cityPlate.style.display = 'none';
+                if(cityActionBtn) cityActionBtn.style.display = 'none';
+                if(actionBtnsContainer) actionBtnsContainer.style.display = 'none';
+                if(cityNoteBtn) cityNoteBtn.style.display = 'none'; 
+                listContainer.style.display = 'flex';
+                listContainer.innerHTML = ''; 
+
+                const plateToName = {};
+                cityGroups.forEach(g => {
+                    plateToName[g.getAttribute('data-plakakodu')] = g.getAttribute('data-iladi');
+                });
+
+                // --- TÜM TÜRKİYE ---
                 if (filterType === 'all') {
-                    contentArea.classList.add('active'); 
-                    contentArea.classList.remove('expanded');
-                    showTurkeyMap();
-                    
-                    if(cityPlate) cityPlate.style.display = 'none';
-                    if(cityActionBtn) cityActionBtn.style.display = 'none';
-                    if(actionBtnsContainer) actionBtnsContainer.style.display = 'none';
-                    if(cityNoteBtn) cityNoteBtn.style.display = 'none'; 
-                    listContainer.style.display = 'flex';
-                    
                     filterMenuBtn.innerHTML = '<span style="font-size: 18px;">☰</span> Şehirler';
-                    
-                    let allCitiesArray = [];
-                    cityGroups.forEach(g => {
-                        const plaka = g.getAttribute('data-plakakodu');
-                        const isim = g.getAttribute('data-iladi');
-                        if(plaka && plaka !== "00") {
-                            allCitiesArray.push({ plaka, isim });
-                        }
-                    });
-                    
-                    allCitiesArray.sort((a, b) => parseInt(a.plaka) - parseInt(b.plaka));
                     cityNameEl.innerText = "Şehirler (81) ve KKTC";
-                    listContainer.innerHTML = '';
+                    
+                    let allCitiesArray = Object.keys(plateToName)
+                        .filter(p => p !== "00")
+                        .map(plaka => ({ plaka, isim: plateToName[plaka] }))
+                        .sort((a, b) => parseInt(a.plaka) - parseInt(b.plaka));
 
                     allCitiesArray.forEach(city => {
                         const item = document.createElement('div');
@@ -1870,31 +1975,128 @@
                         
                         item.addEventListener('click', () => {
                             const targetCity = document.querySelector(`svg [data-plakakodu="${city.plaka}"]`);
-                            if (targetCity) {
-                                // Sadece tıklanmış gibi yapar, yakınlaştırma (zoom) kodlarını sildik
-                                targetCity.dispatchEvent(new Event('click'));
-                            }
+                            if (targetCity) targetCity.dispatchEvent(new Event('click'));
                         });
-                        listContainer.appendChild(item);
+                        fragment.appendChild(item); 
                     });
+                    listContainer.appendChild(fragment); 
                 }
+                // --- BÖLGELER FİLTRESİ (KASMAYAN, SIFIR HATA GARANTİLİ VERSİYON) ---
+                else if (filterType === 'regions') {
+                    if (citySearchInput) {
+                        citySearchInput.style.display = 'block';
+                        citySearchInput.placeholder = 'Bölge ara (Örn: Ege)';
+                    }
+                    
+                    mainSvg.classList.add('filtering-regions'); 
+                    filterMenuBtn.innerHTML = `<span style="font-size: 18px;">☰</span> Bölgeler`;
+                    cityNameEl.innerText = `Türkiye'nin Bölgeleri (7)`;
+
+                    // YENİ VE GÜVENLİ: Veriler içeride olduğu için dışarıdan okuma hatası Asla vermez!
+                    const regions = [
+                        { name: "Marmara Bölgesi", color: "#28a745", plates: ["10", "11", "16", "17", "22", "34", "39", "41", "54", "59", "77"] }, 
+                        { name: "Ege Bölgesi", color: "#007bff", plates: ["03", "09", "20", "35", "43", "45", "48", "64"] }, 
+                        { name: "Akdeniz Bölgesi", color: "#fd7e14", plates: ["01", "07", "15", "31", "32", "33", "46", "80"] }, 
+                        { name: "İç Anadolu Bölgesi", color: "#6f42c1", plates: ["06", "18", "26", "38", "40", "42", "50", "51", "58", "66", "68", "70", "71"] }, 
+                        { name: "Karadeniz Bölgesi", color: "#20c997", plates: ["05", "08", "14", "19", "28", "29", "37", "52", "53", "55", "57", "60", "61", "67", "69", "74", "78", "81"] }, 
+                        { name: "Doğu Anadolu Bölgesi", color: "#dc3545", plates: ["04", "12", "13", "23", "24", "25", "30", "36", "44", "49", "62", "65", "75", "76"] }, 
+                        { name: "Güneydoğu Anadolu Bölgesi", color: "#ffc107", plates: ["02", "21", "27", "47", "56", "63", "72", "73", "79"] } 
+                    ];
+
+                    // KESİN ÇÖZÜM: Renkleri garanti altına almak için her girdiğinde anında atıyoruz. (Sıfır kasma)
+                    const plateToRegionColor = {};
+                    regions.forEach(r => r.plates.forEach(p => plateToRegionColor[p] = r.color));
+
+                    cityGroups.forEach(g => {
+                        const plaka = g.getAttribute('data-plakakodu');
+                        if (plateToRegionColor[plaka]) {
+                            g.style.setProperty('--region-color', plateToRegionColor[plaka]);
+                        }
+                    });
+
+                    regions.forEach(region => {
+                        const item = document.createElement('div');
+                        item.className = 'filter-list-item'; 
+                        item.style.padding = '12px 15px';
+                        item.style.borderLeftColor = region.color;
+                        item.style.borderLeftWidth = "5px"; 
+                        item.innerHTML = `<span style="font-weight:600; color:#333; font-size:15px;">${region.name}</span>`;
+                        
+                        item.addEventListener('click', (e) => {
+                            e.stopPropagation(); 
+                            
+                            // 1. HARİTAYI SIFIRLA: Çoklu temizleme komutumuzu çalıştırıyoruz
+                            document.querySelectorAll('svg .selected, svg .region-part').forEach(el => {
+                                el.classList.remove('selected', 'region-part');
+                            });
+                            mainSvg.classList.add('region-cluster-active'); // Tek parça motorunu çalıştır
+                            
+                            cityGroups.forEach(g => {
+                                g.style.removeProperty('--region-color');
+                            });
+
+                            // 2. SEÇİLEN BÖLGEYİ PARLAT: Kendi rengiyle boyayıp birleştiriyoruz!
+                            region.plates.forEach(plaka => {
+                                const targetCity = document.querySelector(`svg [data-plakakodu="${plaka}"]`);
+                                if (targetCity) {
+                                    targetCity.classList.add('region-part');
+                                    // YENİ: Bölgenin kendi rengini doğrudan şehre aktarır
+                                    targetCity.style.setProperty('--active-region-color', region.color); 
+                                }
+                            });
+
+                            // 3. BİLGİ PANELİ BAŞLIĞINI VE ARAMA ÇUBUĞUNU GÜNCELLE
+                            cityNameEl.innerText = `${region.name} Şehirleri (${region.plates.length})`;
+                            if (citySearchInput) {
+                                citySearchInput.value = '';
+                                citySearchInput.placeholder = `Şehir ara (Örn: An)`; // Arama zekası artık bu şehirlerde çalışacak!
+                            }
+
+                            // 4. LİSTEYİ TEMİZLE VE BÖLGENİN ŞEHİRLERİNİ EKRANA BAS
+                            listContainer.innerHTML = '';
+                            const subFragment = document.createDocumentFragment();
+                            
+                            let regionCitiesArray = region.plates.map(plaka => {
+                                return { plaka: plaka, isim: plateToName[plaka] || "Bilinmeyen" };
+                            }).sort((a, b) => parseInt(a.plaka) - parseInt(b.plaka)); // Plakaya göre sırala
+
+                            regionCitiesArray.forEach(city => {
+                                const cityItem = document.createElement('div');
+                                cityItem.className = 'filter-list-item';
+                                cityItem.style.padding = '12px 15px';
+                                
+                                // Şehir listesi için estetik dokunuş
+                                cityItem.innerHTML = `<span style="font-weight:600; color:#333; font-size:15px;">${city.isim}</span> <span style="color:#999; font-size:12px; font-weight:bold;">${city.plaka}</span>`;
+                                
+                                // ŞEHRE TIKLAMA OLAYI (Şehrin içine girmek için)
+                                cityItem.addEventListener('click', (evt) => {
+                                    evt.stopPropagation();
+                                    
+                                    // Çoklu seçimi (bölge vurgusunu) iptal edip sadece o şehre odaklan
+                                    cityGroups.forEach(g => g.classList.remove('selected'));
+                                    
+                                    const targetCity = document.querySelector(`svg [data-plakakodu="${city.plaka}"]`);
+                                    if (targetCity) {
+                                        targetCity.dispatchEvent(new Event('click')); // Şehre tıklanmış gibi yap!
+                                    }
+                                });
+                                subFragment.appendChild(cityItem);
+                            });
+                            
+                            listContainer.appendChild(subFragment);
+                        });
+                        fragment.appendChild(item);
+                    });
+                    listContainer.appendChild(fragment);
+                }
+                // --- ANI VE NOTLARIM FİLTRESİ ---
                 else if (filterType === 'notes_memories') {
-                    contentArea.classList.add('active'); 
-                    contentArea.classList.remove('expanded');
-                    showTurkeyMap();
-                    
-                    if(cityPlate) cityPlate.style.display = 'none';
-                    if(cityActionBtn) cityActionBtn.style.display = 'none';
-                    if(actionBtnsContainer) actionBtnsContainer.style.display = 'none';
-                    if(cityNoteBtn) cityNoteBtn.style.display = 'none'; 
-                    listContainer.style.display = 'flex';
-                    
                     mainSvg.classList.add('filtering-notes-memories');
                     filterMenuBtn.innerHTML = `<span style="font-size: 18px;">☰</span> Anı ve Notlarım`;
                     
                     if (notesTogglesEl) notesTogglesEl.style.display = 'flex';
 
-                    updateHeatmapColors(); // Haritayı canlandır
+                    updateHeatmapColors(); 
 
                     let validCities = new Set();
                     const memToggle = document.getElementById('toggleMemories');
@@ -1902,30 +2104,31 @@
                     const showM = memToggle ? memToggle.checked : true;
                     const showN = noteToggle ? noteToggle.checked : true;
 
-                    // Hata Giderildi: Güvenli tarama yapılıyor
-                    cityGroups.forEach(g => {
-                        const plaka = g.getAttribute('data-plakakodu');
-                        let count = 0;
-                        if (showN && cityNotes[plaka]) count += cityNotes[plaka].length;
-                        if (showM && cityMemories[plaka]) count += cityMemories[plaka].length;
-                        if (count > 0) validCities.add(plaka);
-                    });
+                    if (showN) {
+                        Object.keys(cityNotes).forEach(plaka => {
+                            if (cityNotes[plaka] && cityNotes[plaka].length > 0) validCities.add(plaka);
+                        });
+                    }
+                    if (showM) {
+                        Object.keys(cityMemories).forEach(plaka => {
+                            if (cityMemories[plaka] && cityMemories[plaka].length > 0) validCities.add(plaka);
+                        });
+                    }
 
                     const cityArray = Array.from(validCities);
-                    cityNameEl.innerText = `Anı ve Notlar (${cityArray.length})`;
-                    listContainer.innerHTML = '';
+                    
+                    let panelTitle = "Anı ve Notlar";
+                    if (showM && !showN) panelTitle = "Anılar";
+                    else if (!showM && showN) panelTitle = "Notlar";
+                    
+                    cityNameEl.innerText = `${panelTitle} (${cityArray.length})`;
 
                     if (cityArray.length === 0) {
                         listContainer.innerHTML = '<p style="text-align:center; color:#777; margin-top:20px;">Seçilen kriterlere uygun şehir bulunamadı.</p>';
                     } else {
-                        const plateToName = {};
-                        cityGroups.forEach(g => {
-                            plateToName[g.getAttribute('data-plakakodu')] = g.getAttribute('data-iladi');
-                        });
-                        
                         const sortedNames = cityArray
                             .map(plaka => ({ plaka, isim: plateToName[plaka] || "Bilinmeyen" }))
-                            .sort((a, b) => a.isim.localeCompare(b.isim, 'tr'));
+                            .sort((a, b) => parseInt(a.plaka) - parseInt(b.plaka));
 
                         sortedNames.forEach(city => {
                             const item = document.createElement('div');
@@ -1953,27 +2156,15 @@
                             
                             item.addEventListener('click', () => {
                                 const targetCity = document.querySelector(`svg [data-plakakodu="${city.plaka}"]`);
-                                if (targetCity) {
-                                    // Sadece haritadaki şehre tıklanmış gibi tetikler, yakınlaştırma (zoom) yapmaz!
-                                    targetCity.dispatchEvent(new Event('click'));
-                                }
+                                if (targetCity) targetCity.dispatchEvent(new Event('click'));
                             });
-
-                            listContainer.appendChild(item);
+                            fragment.appendChild(item);
                         });
+                        listContainer.appendChild(fragment);
                     }
                 }
+                // --- GEZDİKLERİM / KAYDETTİKLERİM FİLTRESİ ---
                 else {
-                    contentArea.classList.add('active'); 
-                    contentArea.classList.remove('expanded');
-                    showTurkeyMap();
-                    
-                    if(cityPlate) cityPlate.style.display = 'none';
-                    if(cityActionBtn) cityActionBtn.style.display = 'none';
-                    if(actionBtnsContainer) actionBtnsContainer.style.display = 'none';
-                    if(cityNoteBtn) cityNoteBtn.style.display = 'none'; 
-                    listContainer.style.display = 'flex';
-                    
                     mainSvg.classList.add(`filtering-${filterType}`);
                     
                     const isVisited = filterType === 'visited';
@@ -1984,19 +2175,13 @@
                     
                     filterMenuBtn.innerHTML = `<span style="font-size: 18px;">☰</span> ${menuText}`;
                     cityNameEl.innerText = `${listTitle} (${cityArray.length})`;
-                    listContainer.innerHTML = '';
 
                     if (cityArray.length === 0) {
                         listContainer.innerHTML = '<p style="text-align:center; color:#777; margin-top:20px;">Bu listede henüz şehir yok.</p>';
                     } else {
-                        const plateToName = {};
-                        cityGroups.forEach(g => {
-                            plateToName[g.getAttribute('data-plakakodu')] = g.getAttribute('data-iladi');
-                        });
-                        
                         const sortedNames = cityArray
                             .map(plaka => ({ plaka, isim: plateToName[plaka] || "Bilinmeyen" }))
-                            .sort((a, b) => a.isim.localeCompare(b.isim, 'tr'));
+                            .sort((a, b) => parseInt(a.plaka) - parseInt(b.plaka));
 
                         sortedNames.forEach(city => {
                             const item = document.createElement('div');
@@ -2005,14 +2190,11 @@
                             
                             item.addEventListener('click', () => {
                                 const targetCity = document.querySelector(`svg [data-plakakodu="${city.plaka}"]`);
-                                if (targetCity) {
-                                    // Sadece haritadaki şehre tıklanmış gibi tetikler, yakınlaştırma (zoom) yapmaz!
-                                    targetCity.dispatchEvent(new Event('click'));
-                                }
+                                if (targetCity) targetCity.dispatchEvent(new Event('click'));
                             });
-
-                            listContainer.appendChild(item);
+                            fragment.appendChild(item);
                         });
+                        listContainer.appendChild(fragment);
                     }
                 }
                 
@@ -2023,6 +2205,9 @@
             if (filterAllBtn) filterAllBtn.addEventListener('click', (e) => { e.stopPropagation(); applyFilter('all'); });
             if (filterVisitedBtn) filterVisitedBtn.addEventListener('click', (e) => { e.stopPropagation(); applyFilter('visited'); });
             if (filterSavedBtn) filterSavedBtn.addEventListener('click', (e) => { e.stopPropagation(); applyFilter('saved'); });
+
+            const filterRegionsBtn = document.getElementById('filterRegionsBtn');
+            if (filterRegionsBtn) filterRegionsBtn.addEventListener('click', (e) => { e.stopPropagation(); applyFilter('regions'); });
 
             // YENİ: Anı ve Notlarım Butonu ve Switch Dinleyicileri
             const fnmBtn = document.getElementById('filterNotesMemoriesBtn');
@@ -2116,14 +2301,16 @@
                             // YENİ DÜZELTME: Ekran yenilenmeden önce açık olan bir şehir var mı diye bak ve aklında tut!
                             const activeCity = document.querySelector('svg .selected');
 
-                            // 4. Soldaki listeyi güncel verilerle baştan çizdir
+                            // 4. Soldaki listeyi (Görünüm panelini) güncel verilerle baştan çizdir
                             const isFilteringVisited = mainSvg && mainSvg.classList.contains('filtering-visited');
                             const isFilteringSaved = mainSvg && mainSvg.classList.contains('filtering-saved');
                             const isFilteringNotesMemories = mainSvg && mainSvg.classList.contains('filtering-notes-memories');
+                            const isFilteringRegions = mainSvg && mainSvg.classList.contains('filtering-regions'); // YENİ EKLENDİ
 
                             if (isFilteringVisited) applyFilter('visited');
                             else if (isFilteringSaved) applyFilter('saved');
                             else if (isFilteringNotesMemories) applyFilter('notes_memories');
+                            else if (isFilteringRegions) applyFilter('regions'); // YENİ EKLENDİ: Artık bölgeleri de tanıyor!
                             else applyFilter('all');
 
                             // YENİ DÜZELTME: Eğer kullanıcı hızlıca bir şehre tıkladıysa, listeler güncellendikten sonra o şehri geri aç!
@@ -2190,30 +2377,65 @@
                     if(actionBtnsContainer) actionBtnsContainer.style.display = 'flex';
                     if(cityNoteBtn) cityNoteBtn.style.display = 'flex'; 
 
-                    // YENİ: Bir şehre tıklandığında Anı/Not aç-kapa butonlarını da gizle!
                     const notesTogglesEl = document.getElementById('notesMemoriesToggles');
                     if (notesTogglesEl) notesTogglesEl.style.display = 'none';
 
                     const parentGroup = e.currentTarget;
+                    
+                    // 1. EĞER TIKLANAN ŞEHİR ZATEN "SEÇİLİ" İSE (Geri çıkma ve Kapatma işlemi)
                     if (parentGroup.classList.contains('selected')) {
                         const isFilteringVisited = mainSvg.classList.contains('filtering-visited');
                         const isFilteringSaved = mainSvg.classList.contains('filtering-saved');
-                        const isFilteringNotesMemories = mainSvg.classList.contains('filtering-notes-memories'); // YENİ
-                        
-                        parentGroup.classList.remove('selected');
+                        const isFilteringNotesMemories = mainSvg.classList.contains('filtering-notes-memories'); 
+                        const isFilteringRegions = mainSvg.classList.contains('filtering-regions'); 
+                        const hasSelectedRegion = mainSvg && mainSvg.classList.contains('region-cluster-active'); 
 
-                        if (isFilteringVisited) {
-                            applyFilter('visited');
-                        } else if (isFilteringSaved) {
-                            applyFilter('saved');
-                        } else if (isFilteringNotesMemories) {
-                            applyFilter('notes_memories');
-                        } else {
-                            applyFilter('all'); // Hiçbir filtre yoksa tüm şehirlere dön
+                        // YENİ: Eğer bölge aktifse, şehre tekrar tıklandığında sadece şehri kapat ve bölge menüsüne dön!
+                        if (isFilteringRegions && hasSelectedRegion) {
+                            parentGroup.classList.remove('selected');
+                            
+                            if (listContainer) listContainer.style.display = 'flex'; 
+                            
+                            if(cityActionBtn) cityActionBtn.style.display = 'none';
+                            if(actionBtnsContainer) actionBtnsContainer.style.display = 'none';
+                            if(cityNoteBtn) cityNoteBtn.style.display = 'none';
+                            if(cityPlate) cityPlate.style.display = 'none';
+
+                            const firstRegionPart = document.querySelector('svg .region-part');
+                            if (firstRegionPart && typeof regionsData !== 'undefined') {
+                                const plaka = firstRegionPart.getAttribute('data-plakakodu');
+                                const foundRegion = regionsData.find(r => r.plates.includes(plaka));
+                                if (foundRegion) {
+                                    const cityNameEl = document.getElementById('selectedCityName');
+                                    if (cityNameEl) cityNameEl.innerText = `${foundRegion.name} Şehirleri (${foundRegion.plates.length})`;
+                                    
+                                    const citySearchInput = document.getElementById('citySearchInput');
+                                    if (citySearchInput) {
+                                        citySearchInput.style.display = 'block';
+                                        citySearchInput.value = '';
+                                        citySearchInput.placeholder = 'Şehir ara (Örn: An)';
+                                    }
+                                }
+                            }
+                            const cityPlaceholderText = document.getElementById('cityPlaceholderText');
+                            if (cityPlaceholderText) cityPlaceholderText.style.display = 'none';
+                            return;
                         }
+
+                        // Diğer menüler (veya ekranda bölge yokken) için normal sıfırlama
+                        document.querySelectorAll('svg .selected, svg .region-part').forEach(el => el.classList.remove('selected', 'region-part'));
+                        if (mainSvg) mainSvg.classList.remove('region-cluster-active');
+
+                        if (isFilteringVisited) applyFilter('visited');
+                        else if (isFilteringSaved) applyFilter('saved');
+                        else if (isFilteringNotesMemories) applyFilter('notes_memories');
+                        else if (isFilteringRegions) applyFilter('regions'); 
+                        else applyFilter('all'); 
+                        
                         return; 
                     }
 
+                    // 2. EKRAN BİLGİLERİNİ GÜNCELLE
                     contentArea.classList.add('active');
                     contentArea.classList.remove('expanded'); 
                     showTurkeyMap(); 
@@ -2223,6 +2445,12 @@
                     const ilAdi = parentGroup.getAttribute('data-iladi');
                     const cityNameEl = document.getElementById('selectedCityName');
                     if (cityNameEl && ilAdi) cityNameEl.innerText = ilAdi;
+
+                    const cityPlaceholderText = document.getElementById('cityPlaceholderText');
+                    if (cityPlaceholderText) cityPlaceholderText.style.display = 'block';
+
+                    const citySearchInput = document.getElementById('citySearchInput');
+                    if (citySearchInput) citySearchInput.style.display = 'none';
 
                     const cityPlate = document.getElementById('cityPlate');
                     const plateNumber = document.getElementById('plateNumber');
@@ -2253,8 +2481,13 @@
                         }
                     }
 
+                    // 3. VURGU (SEÇİM) İŞLEMİ
                     const previousSelected = document.querySelector('svg .selected');
                     if (previousSelected) previousSelected.classList.remove('selected');
+                    
+                    // YENİ: Dışarıdan bir şehre tıklandığında "Bölgeyi Sil" komutunu tamamen SİLDİK.
+                    // Artık nereye tıklarsan tıkla bölge rengi aslanlar gibi haritada kalacak!
+
                     parentGroup.classList.add('selected');
                 });
             });
@@ -3343,19 +3576,60 @@
                     const isFilteringVisited = mainSvg && mainSvg.classList.contains('filtering-visited');
                     const isFilteringSaved = mainSvg && mainSvg.classList.contains('filtering-saved');
                     const isFilteringNotesMemories = mainSvg && mainSvg.classList.contains('filtering-notes-memories'); 
+                    const isFilteringRegions = mainSvg && mainSvg.classList.contains('filtering-regions'); 
+                    
                     const hasSelectedCity = document.querySelector('svg .selected'); 
+                    const hasSelectedRegion = mainSvg && mainSvg.classList.contains('region-cluster-active'); 
 
-                    if (hasSelectedCity && isFilteringVisited) {
-                        applyFilter('visited');
-                    } 
-                    else if (hasSelectedCity && isFilteringSaved) {
-                        applyFilter('saved');
-                    } 
-                    else if (hasSelectedCity && isFilteringNotesMemories) {
-                        applyFilter('notes_memories');
+                    if (hasSelectedCity && isFilteringVisited) applyFilter('visited');
+                    else if (hasSelectedCity && isFilteringSaved) applyFilter('saved');
+                    else if (hasSelectedCity && isFilteringNotesMemories) applyFilter('notes_memories');
+                    else if (isFilteringRegions) {
+                        // YENİ: Bölgeler menüsü için KADEMELİ GERİ ÇIKIŞ
+                        if (hasSelectedCity && hasSelectedRegion) {
+                            // 1. KADEME: Bölge açıkken bir şehir seçiliyse boşluğa basınca sadece şehri kapat, bölgeye dön.
+                            hasSelectedCity.classList.remove('selected');
+                            
+                            const listContainer = document.getElementById('filterListContainer');
+                            if (listContainer) listContainer.style.display = 'flex'; // Gizlenen şehir listesini geri getir
+                            
+                            if(cityActionBtn) cityActionBtn.style.display = 'none';
+                            if(actionBtnsContainer) actionBtnsContainer.style.display = 'none';
+                            if(cityNoteBtn) cityNoteBtn.style.display = 'none';
+                            if(cityPlate) cityPlate.style.display = 'none';
+
+                            // Bilgi paneli başlığını aktif bölgenin adına geri döndür (Arkada kalan bölgeden ismini bulur)
+                            const firstRegionPart = document.querySelector('svg .region-part');
+                            if (firstRegionPart && typeof regionsData !== 'undefined') {
+                                const plaka = firstRegionPart.getAttribute('data-plakakodu');
+                                const foundRegion = regionsData.find(r => r.plates.includes(plaka));
+                                if (foundRegion) {
+                                    const cityNameEl = document.getElementById('selectedCityName');
+                                    if (cityNameEl) cityNameEl.innerText = `${foundRegion.name} Şehirleri (${foundRegion.plates.length})`;
+                                    
+                                    const citySearchInput = document.getElementById('citySearchInput');
+                                    if (citySearchInput) {
+                                        citySearchInput.style.display = 'block';
+                                        citySearchInput.value = '';
+                                        citySearchInput.placeholder = 'Şehir ara (Örn: An)';
+                                    }
+                                }
+                            }
+                            const cityPlaceholderText = document.getElementById('cityPlaceholderText');
+                            if (cityPlaceholderText) cityPlaceholderText.style.display = 'none';
+                            
+                        } else if (hasSelectedRegion || hasSelectedCity) {
+                            // 2. KADEME: Sadece bölge seçiliyken boşluğa basılırsa bölgelerin ana (7'li) listesine dön.
+                            document.querySelectorAll('svg .selected, svg .region-part').forEach(el => el.classList.remove('selected', 'region-part'));
+                            if (mainSvg) mainSvg.classList.remove('region-cluster-active');
+                            applyFilter('regions'); 
+                        }
                     }
                     else {
+                        // Hiçbiri değilse en ana sayfaya (Tüm Türkiye) dön
                         if (hasSelectedCity) hasSelectedCity.classList.remove('selected');
+                        document.querySelectorAll('svg .region-part').forEach(el => el.classList.remove('region-part'));
+                        if (mainSvg) mainSvg.classList.remove('region-cluster-active');
                         applyFilter('all'); 
                     }
                 }
@@ -3373,6 +3647,30 @@
 
             applyFilter('all');
 
+            // --- YENİ: CANLI ŞEHİR ARAMA MOTORU ---
+            const citySearchInputEl = document.getElementById('citySearchInput');
+            if (citySearchInputEl) {
+                citySearchInputEl.addEventListener('input', (e) => {
+                    // Kullanıcının yazdığını Türkçe karakterlere duyarlı şekilde küçült
+                    const searchTerm = e.target.value.toLocaleLowerCase('tr-TR').trim();
+                    const listItems = document.querySelectorAll('.filter-list-item');
+                    
+                    listItems.forEach(item => {
+                        // Şehir ismini listedeki elementten al
+                        const cityNameSpan = item.querySelector('span');
+                        if (cityNameSpan) {
+                            const cityName = cityNameSpan.innerText.toLocaleLowerCase('tr-TR');
+                            
+                            // YENİ: Yazılan kelimeyi İÇEREN şehirleri/bölgeleri göster ("Anadolu" yazınca hepsi çıkar)
+                            if (cityName.includes(searchTerm)) {
+                                item.style.display = 'flex';
+                            } else {
+                                item.style.display = 'none';
+                            }
+                        }
+                    });
+                });
+            }
 
             // --- KÜRESEL İPUCU (GLOBAL TOOLTIP) MOTORU ---
             const tooltipEl = document.createElement('div');

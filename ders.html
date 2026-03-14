@@ -509,19 +509,82 @@
             height: 100%;
         }
 
-        /* --- ORTA KISIM: 3'LÜ MODÜL (DASHBOARD) TASARIMI --- */
+        /* --- ORTA KISIM: 3'LÜ MODÜL (ESNEK DASHBOARD) TASARIMI --- */
         .middle-section {
             width: 95%;
             max-width: 1400px;
-            margin: 0 auto 20px auto; /* Alttaki takvim kısmıyla arasına 20px boşluk bırakır */
-            
-            /* Ortadaki boş alanı otomatik olarak tamamen doldurması için */
+            margin: 0 auto 20px auto;
             flex: 1; 
-            
-            /* Izgara sistemi: Sol(1 birim) - Orta(2 birim) - Sağ(1 birim) */
             display: grid;
-            grid-template-columns: 1fr 2fr 1fr; 
-            gap: 20px;
+            /* YENİ: Sabit oranlar yerine Javascript'in kontrol edeceği dinamik değişkenler (--col) atadık */
+            /* Araya da resizer'ların sığacağı 15px'lik boşluklar bıraktık */
+            grid-template-columns: var(--col1, 1fr) 15px var(--col2, 2fr) 15px var(--col3, 1fr); 
+            gap: 0;
+        }
+
+        /* YENİ: Sürükleme Çubukları (Ayraçlar) Tasarımı */
+        .drag-resizer {
+            cursor: col-resize; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 10px;
+            transition: background 0.2s;
+            margin: 0 2px;
+            position: relative; /* Butonun çubuğun en altına inmesi için */
+        }
+        .drag-resizer:hover, .drag-resizer.dragging {
+            background-color: #e6f2ff;
+        }
+        
+        /* Çubuğun içindeki şık mavi çizgi */
+        .drag-resizer::after {
+            content: '';
+            width: 4px;
+            height: 40px;
+            background-color: #cce5ff;
+            border-radius: 4px;
+            transition: background 0.2s, height 0.2s;
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%); /* Çizgiyi tam ortaya kilitler */
+        }
+        .drag-resizer:hover::after, .drag-resizer.dragging::after {
+            background-color: #007bff;
+            height: 60px; 
+        }
+
+        /* YENİ: Çubukların İçindeki Kısmi Sıfırlama Butonları */
+        .resizer-reset-btn {
+            position: absolute;
+            bottom: 15px; /* Çubuğun altından hizalar */
+            background: #ffffff;
+            color: #007bff;
+            border: 1px solid #cce5ff;
+            border-radius: 50%;
+            width: 26px;
+            height: 26px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            transition: all 0.2s ease;
+            z-index: 10; /* Çizginin üstünde durmasını sağlar */
+        }
+        .resizer-reset-btn i {
+            font-size: 11px;
+            transition: transform 0.4s ease;
+        }
+        .resizer-reset-btn:hover {
+            background: #007bff;
+            color: #fff;
+            border-color: #007bff;
+            box-shadow: 0 4px 8px rgba(0, 123, 255, 0.2);
+            transform: scale(1.1);
+        }
+        .resizer-reset-btn:hover i {
+            transform: rotate(180deg);
         }
 
         .dashboard-widget {
@@ -1479,6 +1542,88 @@
             width: 100%;
         }
 
+        /* ======================================================= */
+        /* --- RESPONSİVE (EKRAN UYUMLULUK) TASARIMLARI --- */
+        /* ======================================================= */
+
+        /* 1. LAPTOPLAR VE KÜÇÜK MASAÜSTÜLER (1200px ve altı) */
+        @media (max-width: 1200px) {
+            body {
+                height: auto; /* Sabit 100vh kilidini açar */
+                overflow-y: auto; /* İçerik sığmazsa aşağı kaydırma çubuğunu (scroll) açar */
+            }
+            .middle-section {
+                grid-template-columns: 1fr 1fr; /* 3'lü yan yana sütunu 2 sütuna düşürür */
+            }
+            .schedule-widget {
+                grid-column: span 2; /* Ders programı çok yer kapladığı için alt satıra geçer ve boydan boya uzar */
+                order: -1; /* Hatta görsel bütünlük için Ders Programını en başa (üste) alırız */
+            }
+            .main-content {
+                grid-template-columns: 1fr; /* Takvim ve Konu çalışmasını yan yana değil alt alta alır */
+            }
+        }
+
+        /* 2. TABLETLER (992px ve altı) */
+        @media (max-width: 992px) {
+            .middle-section {
+                grid-template-columns: 1fr; /* Tüm dashboard modüllerini ezilmemesi için tek sütunda alt alta dizer */
+            }
+            .schedule-widget {
+                grid-column: span 1; /* Tek sütun olduğu için boydan uzamayı sıfırlarız */
+            }
+            .custom-modal-content {
+                width: 95%; /* Açılan pencereler (Not, Deneme vs.) küçük ekranda tam genişlik alır */
+                margin: 20px auto;
+                max-height: 90vh; 
+                overflow-y: auto; /* Pencere ekrandan taşarsa iç kaydırma açar */
+            }
+        }
+
+        /* 3. TELEFONLAR VE DAR EKRANLAR (768px ve altı) */
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column; /* Logoyu ve YKS sayacını yan yana değil alt alta alır */
+                gap: 15px;
+                padding: 15px;
+                position: relative; /* Telefondaki yapışkan (sticky) tepe menüsünü kaldırır ki ekranı daraltmasın */
+            }
+            .countdown-container {
+                width: 100%; /* Sayaç mobilde tam genişlik alır */
+            }
+            .custom-date-section {
+                grid-template-columns: 1fr; /* Başlangıç ve Bitiş tarihlerini alt alta alır */
+            }
+            .date-arrow {
+                transform: rotate(90deg); /* Tarihleri alt alta aldığımız için aradaki oku da aşağı doğru çeviririz */
+            }
+            .exam-list-section {
+                flex-direction: column; /* TYT/AYT başlığı ve deneme listesini alt alta alır */
+                height: auto; /* Sabit yatay kutu boyunu özgür bırakır */
+            }
+            .exam-list-title {
+                width: 100%;
+                border-right: none;
+                border-bottom: 2px dashed #cce5ff; /* Dikey çizgiyi silip yatay ayırıcı çizer */
+                padding-right: 0;
+                padding-bottom: 10px;
+                margin-bottom: 10px;
+            }
+            
+            /* Deneme ekleme penceresindeki yan yana inputları (Deneme Adı ve Tarih) alt alta dizer */
+            .modal-body > div[style*="display: flex"] {
+                flex-direction: column !important; 
+            }
+            .input-group {
+                width: 100% !important; 
+            }
+            .subject-input-row {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+        }
+
     </style>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -1523,7 +1668,7 @@
 
     </header>
 
-    <section class="middle-section">
+    <section class="middle-section" id="dynamicMiddleSection">
         
         <div class="widget-box dashboard-widget" style="display: flex; flex-direction: column;">
             <div class="widget-header notes-header">
@@ -1566,12 +1711,24 @@
             </div>
         </div>
 
+        <div class="drag-resizer" id="resizer1">
+            <button class="resizer-reset-btn" id="resetLeftBtn" data-custom-title="Düzeni sıfırla">
+                <i class="fa-solid fa-arrows-rotate"></i>
+            </button>
+        </div>
+
         <div class="widget-box dashboard-widget schedule-widget">
             <div class="widget-header">
                 <i class="fa-solid fa-calendar-week widget-icon"></i>
                 <h2 class="widget-title">Ders Programı</h2>
             </div>
             <div class="placeholder-text">Haftalık program tablosu buraya gelecek...</div>
+        </div>
+
+        <div class="drag-resizer" id="resizer2">
+            <button class="resizer-reset-btn" id="resetRightBtn" data-custom-title="Düzeni sıfırla">
+                <i class="fa-solid fa-arrows-rotate"></i>
+            </button>
         </div>
 
         <div class="widget-box dashboard-widget notes-widget">
@@ -3440,6 +3597,188 @@
                 deleteExamBtn.disabled = false;
             }
         });
+
+        // =================================================================
+        // --- SÜRÜKLENEBİLİR PANELLER (DİNAMİK BOYUTLANDIRMA MOTORU) ---
+        // =================================================================
+        const middleSection = document.getElementById('dynamicMiddleSection');
+        const resizer1 = document.getElementById('resizer1');
+        const resizer2 = document.getElementById('resizer2');
+        
+        let isDraggingLayout = false;
+        let currentResizerId = null;
+        let startX, startWLeft, startWRight;
+        let widget1, widget2, widget3;
+
+        function startLayoutDrag(e, resizerNum) {
+            isDraggingLayout = true;
+            currentResizerId = resizerNum;
+            startX = e.clientX;
+
+            // Kutuları dinamik olarak seçiyoruz (Aralarda resizer'lar olduğu için indexler 0, 2, 4)
+            widget1 = middleSection.children[0];
+            widget2 = middleSection.children[2];
+            widget3 = middleSection.children[4];
+
+            // Anlık genişlikleri piksel (px) olarak ölçüp sisteme kilitliyoruz
+            const w1 = widget1.getBoundingClientRect().width;
+            const w2 = widget2.getBoundingClientRect().width;
+            const w3 = widget3.getBoundingClientRect().width;
+
+            middleSection.style.setProperty('--col1', w1 + 'px');
+            middleSection.style.setProperty('--col2', w2 + 'px');
+            middleSection.style.setProperty('--col3', w3 + 'px');
+
+            if (resizerNum === 1) {
+                startWLeft = w1;
+                startWRight = w2;
+                resizer1.classList.add('dragging');
+            } else {
+                startWLeft = w2;
+                startWRight = w3;
+                resizer2.classList.add('dragging');
+            }
+
+            document.body.style.cursor = 'col-resize';
+            document.body.style.userSelect = 'none'; // Sürüklerken yazıların mavi mavi seçilmesini engeller
+
+            document.addEventListener('mousemove', layoutDrag);
+            document.addEventListener('mouseup', stopLayoutDrag);
+        }
+
+        if(resizer1 && resizer2) {
+            resizer1.addEventListener('mousedown', (e) => startLayoutDrag(e, 1));
+            resizer2.addEventListener('mousedown', (e) => startLayoutDrag(e, 2));
+        }
+
+        function layoutDrag(e) {
+            if (!isDraggingLayout) return;
+            const dx = e.clientX - startX;
+
+            let newLeft = startWLeft + dx;
+            let newRight = startWRight - dx;
+
+            // KORUMA KALKANI: Kutuların çok fazla küçülüp görünmez olmasını (ezilmesini) engeller
+            if (newLeft < 250) {
+                newLeft = 250;
+                newRight = startWLeft + startWRight - 250;
+            }
+            if (newRight < 250) {
+                newRight = 250;
+                newLeft = startWLeft + startWRight - 250;
+            }
+
+            if (currentResizerId === 1) {
+                middleSection.style.setProperty('--col1', newLeft + 'px');
+                middleSection.style.setProperty('--col2', newRight + 'px');
+            } else {
+                middleSection.style.setProperty('--col2', newLeft + 'px');
+                middleSection.style.setProperty('--col3', newRight + 'px');
+            }
+        }
+
+        function stopLayoutDrag() {
+            if(!isDraggingLayout) return;
+            isDraggingLayout = false;
+            document.removeEventListener('mousemove', layoutDrag);
+            document.removeEventListener('mouseup', stopLayoutDrag);
+            document.body.style.cursor = 'default';
+            document.body.style.userSelect = 'auto';
+            if(resizer1) resizer1.classList.remove('dragging');
+            if(resizer2) resizer2.classList.remove('dragging');
+
+            // Pikselleri tekrar oransal 'fr' (kesir) birimine çeviriyoruz ki 
+            // kullanıcı tarayıcıyı tam ekran yaptığında oranlar bozulmasın
+            const w1 = widget1.getBoundingClientRect().width;
+            const w2 = widget2.getBoundingClientRect().width;
+            const w3 = widget3.getBoundingClientRect().width;
+            
+            middleSection.style.setProperty('--col1', w1 + 'fr');
+            middleSection.style.setProperty('--col2', w2 + 'fr');
+            middleSection.style.setProperty('--col3', w3 + 'fr');
+            
+            // Grafiğin çözünürlüğünü yeni boyuta göre onar
+            if(typeof updateChart === 'function') updateChart(); 
+        }
+
+        // =================================================================
+        // --- DÜZENİ KISMİ SIFIRLAMA BUTONLARI (PİKSEL KİLİT MOTORLU) ---
+        // =================================================================
+        const resetLeftBtn = document.getElementById('resetLeftBtn');
+        const resetRightBtn = document.getElementById('resetRightBtn');
+
+        if (resetLeftBtn) {
+            // Butona basarken çubuğu yanlışlıkla sürüklemeyi engeller
+            resetLeftBtn.addEventListener('mousedown', (e) => e.stopPropagation());
+            
+            resetLeftBtn.addEventListener('click', (e) => {
+                e.stopPropagation(); 
+                
+                // Kutuların o anki KESİN piksel (px) genişliklerini alıyoruz
+                const w1_current = middleSection.children[0].getBoundingClientRect().width;
+                const w2_current = middleSection.children[2].getBoundingClientRect().width;
+                const w3_current = middleSection.children[4].getBoundingClientRect().width;
+                
+                const totalWidth = w1_current + w2_current + w3_current;
+                
+                // Sol kutu (Denemelerim) orijinalde toplam alanın %25'iydi
+                const originalW1 = totalWidth * 0.25; 
+                
+                // Sağ kutuya HİÇ dokunmadan aradaki farkı orta kutuya (Ders Programı) aktarıyoruz
+                const newW2 = totalWidth - originalW1 - w3_current;
+                
+                // YENİ DÜZELTME: fr yerine direkt piksel (px) ile animasyon veriyoruz ki diğer kolon milim titremesin!
+                middleSection.style.transition = 'grid-template-columns 0.4s cubic-bezier(0.25, 0.8, 0.25, 1)';
+                
+                middleSection.style.setProperty('--col1', originalW1 + 'px');
+                middleSection.style.setProperty('--col2', newW2 + 'px');
+                middleSection.style.setProperty('--col3', w3_current + 'px'); // Sağ taraf PİKSEL olarak kilitlendi!
+                
+                // Animasyon bittikten sonra ekranın responsive (esnek) kalması için px'leri sessizce fr'ye çeviriyoruz
+                setTimeout(() => {
+                    middleSection.style.transition = '';
+                    middleSection.style.setProperty('--col1', originalW1 + 'fr');
+                    middleSection.style.setProperty('--col2', newW2 + 'fr');
+                    middleSection.style.setProperty('--col3', w3_current + 'fr');
+                    if(typeof updateChart === 'function') updateChart(); 
+                }, 400);
+            });
+        }
+
+        if (resetRightBtn) {
+            resetRightBtn.addEventListener('mousedown', (e) => e.stopPropagation());
+            
+            resetRightBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                
+                const w1_current = middleSection.children[0].getBoundingClientRect().width;
+                const w2_current = middleSection.children[2].getBoundingClientRect().width;
+                const w3_current = middleSection.children[4].getBoundingClientRect().width;
+                
+                const totalWidth = w1_current + w2_current + w3_current;
+                
+                // Sağ kutu (Notlarım) orijinalde toplam alanın %25'iydi
+                const originalW3 = totalWidth * 0.25; 
+                
+                // Sol kutuya HİÇ dokunmadan aradaki farkı orta kutuya aktarıyoruz
+                const newW2 = totalWidth - w1_current - originalW3;
+                
+                // Piksel üzerinden milimetrik animasyon kalkanı
+                middleSection.style.transition = 'grid-template-columns 0.4s cubic-bezier(0.25, 0.8, 0.25, 1)';
+                
+                middleSection.style.setProperty('--col1', w1_current + 'px'); // Sol taraf PİKSEL olarak kilitlendi!
+                middleSection.style.setProperty('--col2', newW2 + 'px');
+                middleSection.style.setProperty('--col3', originalW3 + 'px');
+                
+                setTimeout(() => {
+                    middleSection.style.transition = '';
+                    middleSection.style.setProperty('--col1', w1_current + 'fr');
+                    middleSection.style.setProperty('--col2', newW2 + 'fr');
+                    middleSection.style.setProperty('--col3', originalW3 + 'fr');
+                    if(typeof updateChart === 'function') updateChart(); 
+                }, 400);
+            });
+        }
 
     </script>
 </body>

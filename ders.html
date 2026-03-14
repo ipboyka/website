@@ -1,0 +1,3446 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ders Planlayıcı</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f4f7f6; 
+            color: #333;
+            height: 100vh; /* Sayfa yüksekliğini tam ekranla kısıtladık */
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between; /* Üst menüyü tepeye, takvimi en alta iter */
+            overflow: hidden; /* Scroll (aşağı kaydırma) tamamen kapatıldı */
+        }
+
+        /* --- ÜST MENÜ (YÜZEN HEADER) --- */
+        .header {
+            display: flex;
+            justify-content: space-between; 
+            align-items: center;
+            background-color: #ffffff;
+            padding: 15px 30px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.06); 
+            margin: 20px auto; 
+            width: 95%; 
+            max-width: 1400px; 
+            border-radius: 20px; 
+            position: sticky;
+            top: 20px; 
+            z-index: 100; 
+        }
+
+        /* --- MAVİ TEMA YKS SAYACI --- */
+        .countdown-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            /* Ferah, açık mavi bir gradyan */
+            background: linear-gradient(135deg, #f0f8ff 0%, #e6f2ff 100%);
+            padding: 8px 14px;
+            border-radius: 14px;
+            border: 1px solid #cce5ff;
+            /* Gölgeyi de mavi tonlarına uyumlu hale getirdik */
+            box-shadow: inset 0 2px 4px rgba(255,255,255,0.6), 0 4px 8px rgba(0, 123, 255, 0.08);
+            min-width: 160px;
+        }
+
+        .countdown-header {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 6px;
+        }
+
+        .countdown-icon {
+            color: #007bff; /* İkon rengi mavi oldu */
+            font-size: 11px;
+            animation: pulse 2s infinite ease-in-out; 
+        }
+
+        .countdown-title {
+            font-size: 11px;
+            font-weight: 800;
+            color: #007bff; /* Başlık rengi mavi oldu */
+            letter-spacing: 0.5px;
+        }
+
+        .countdown-timer {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .time-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #ffffff;
+            padding: 4px 8px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+            min-width: 42px;
+        }
+
+        .time-val {
+            font-size: 15px;
+            font-weight: 800;
+            color: #333;
+            line-height: 1.1;
+        }
+
+        .time-label {
+            font-size: 8px;
+            font-weight: 700;
+            color: #888;
+            margin-top: 1px;
+            letter-spacing: 0.5px;
+        }
+
+        .time-sep {
+            font-size: 14px;
+            font-weight: 800;
+            color: #007bff; /* İki nokta ayırıcılar da mavi oldu */
+            margin-top: -8px; 
+            opacity: 0.7;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.15); opacity: 1; }
+            100% { transform: scale(1); opacity: 0.8; }
+        }
+
+        /* --- ORTA KISIM: Logo ve Başlık --- */
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer; 
+            transition: transform 0.2s ease;
+        }
+
+        .logo-container:hover {
+            transform: scale(1.02);
+        }
+
+        .logo-icon {
+            width: 45px;
+            height: 45px;
+            background-color: #007bff;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 20px;
+            box-shadow: 0 4px 10px rgba(0, 123, 255, 0.2);
+        }
+
+        .logo-text {
+            font-size: 24px;
+            font-weight: 700;
+            color: #333;
+            letter-spacing: 0.5px;
+        }
+
+        /* --- SAĞ KISIM: Menü Butonu --- */
+        .menu-btn {
+            display: flex;
+            align-items: center;
+            gap: 10px; /* Yazı ile ikon arasındaki boşluk */
+            font-size: 24px; /* İkon boyutu */
+            color: #555;
+            background: none;
+            border: none;
+            cursor: pointer;
+            transition: color 0.2s ease, transform 0.2s ease;
+            padding: 5px 10px;
+        }
+
+        .menu-text {
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .menu-btn:hover {
+            color: #007bff;
+            transform: scale(1.05); /* Yazı da eklendiği için büyüme efektini biraz yumuşattım */
+        }
+
+        /* --- ANA İÇERİK ALANI (GÜNCELLENDİ) --- */
+        .main-content {
+            width: 95%;
+            max-width: 1400px;
+            margin: 0 auto; 
+            margin-bottom: 20px;
+            /* Ekranı eşit iki sütuna böler, sağ ve sol modül oluşur */
+            display: grid;
+            grid-template-columns: 1fr 1fr; 
+            gap: 20px; /* İki balon arasındaki boşluk */
+        }
+
+        /* --- ORTAK MODÜL (BALON) TASARIMI --- */
+        .widget-box {
+            background-color: #ffffff;
+            padding: 10px 15px; /* Takvimi daha da inceltmek için iç boşluklar kısıldı */
+            border-radius: 20px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.06); 
+            /* İki modülün yüksekliklerinin birbirine eşitlenmesi için */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        /* --- SAĞ MODÜL: KONU ÇALIŞMASI TASARIMI --- */
+        .subject-widget {
+            justify-content: flex-start; /* İçerik ortada toplanmasın, yukarıdan başlasın */
+            padding: 15px 20px;
+        }
+
+        .subject-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #f0f4f8; /* Alt kısımdan ayırmak için hafif bir çizgi */
+        }
+
+        .subject-title {
+            font-size: 15px;
+            font-weight: 800;
+            color: #333;
+            text-align: center;
+            flex: 1; /* Başlığın tam ortada durmasını sağlar */
+        }
+
+        /* --- ÖZEL AÇILIR MENÜ (CUSTOM SELECT) TASARIMI --- */
+        .custom-select {
+            position: relative;
+            min-width: 100px;
+        }
+
+        .select-selected {
+            background-color: #f0f8ff;
+            border: 1px solid #cce5ff;
+            color: #007bff;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 6px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            user-select: none; /* Metnin yanlışlıkla seçilmesini engeller */
+        }
+
+        .select-selected:hover {
+            background-color: #007bff;
+            color: #fff;
+            box-shadow: 0 4px 10px rgba(0, 123, 255, 0.2);
+        }
+
+        /* Menü açıldığında oku ters çevirme animasyonu */
+        .select-selected i {
+            transition: transform 0.3s ease;
+        }
+        .select-arrow-active i {
+            transform: rotate(180deg);
+        }
+
+        /* Açılan listenin balonu */
+        .select-items {
+            position: absolute;
+            background-color: #ffffff;
+            top: 115%; /* Butonun hemen altında belirir */
+            left: 0;
+            right: 0;
+            z-index: 99;
+            border-radius: 8px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1); /* Havada asılı durma hissi */
+            overflow: hidden;
+            border: 1px solid #eef2f5;
+        }
+
+        /* Listedeki her bir seçenek */
+        .select-items div {
+            color: #555;
+            padding: 8px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: left;
+        }
+
+        .select-items div:hover {
+            background-color: #f0f8ff;
+            color: #007bff;
+            padding-left: 16px; /* Hover olunca hafif sağa kayma efekti */
+        }
+
+        .select-hide {
+            display: none;
+        }
+
+        /* --- DERS SÜTUNLARI (KOLONLAR) TASARIMI --- */
+        .subject-content {
+            flex: 1;
+            display: flex;
+            justify-content: space-between;
+            align-items: stretch; 
+            gap: 10px; 
+            width: 100%;
+            margin-top: 5px;
+            flex-wrap: wrap; 
+            min-height: 115px; /* Modülün her sekmede sabit boyda kalmasını sağlar! */
+        }
+
+        .lesson-column {
+            flex: 1; /* 4 kolonun da ekrana eşit genişlikte yayılmasını sağlar */
+            background-color: #f8f9fa;
+            border: 1px solid #eef2f5;
+            border-radius: 12px; /* Köşeleri yuvarlatılmış balon görünümü */
+            padding: 15px 5px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+
+        /* Mouse ile üzerine gelindiğinde kolonun yukarı kalkma efekti */
+        .lesson-column:hover {
+            background-color: #e6f2ff;
+            border-color: #cce5ff;
+            transform: translateY(-4px); 
+            box-shadow: 0 6px 12px rgba(0, 123, 255, 0.12);
+        }
+
+        .lesson-icon {
+            font-size: 22px;
+            color: #007bff;
+            opacity: 0.85;
+            transition: transform 0.2s ease;
+        }
+
+        .lesson-column:hover .lesson-icon {
+            transform: scale(1.15); /* İkon da hafifçe büyür */
+            opacity: 1;
+        }
+
+        .lesson-name {
+            font-size: 11px;
+            font-weight: 800;
+            color: #444;
+            line-height: 1.3;
+            padding: 0 2px;
+        }
+
+        .placeholder-text {
+            color: #aaa;
+            font-size: 13px;
+            font-weight: 600;
+            border: 2px dashed #f0f0f0;
+            padding: 20px;
+            border-radius: 12px;
+            width: 100%;
+        }
+
+        /* --- TAKVİM İÇ DETAYLARI --- */
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px; /* Başlık altı boşluk iyice azaltıldı */
+        }
+
+        .calendar-header h2 {
+            font-size: 14px; /* Başlık küçültüldü */
+            font-weight: 700;
+            color: #333;
+        }
+
+        .cal-btn {
+            background: none;
+            border: none;
+            font-size: 13px;
+            color: #007bff;
+            cursor: pointer;
+            padding: 2px 8px;
+            transition: transform 0.2s ease;
+        }
+
+        .cal-btn:hover {
+            transform: scale(1.2);
+        }
+
+        .calendar-weekdays {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            text-align: center;
+            font-weight: 700;
+            font-size: 10px; /* Gün isimleri iyice zarifleştirildi */
+            color: #888;
+            margin-bottom: 4px;
+        }
+
+        .calendar-days {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px; /* Kutular arası boşluk kısıldı */
+        }
+
+        .day-box {
+            height: 22px; /* Yükseklik önceki 30px'ten 22px'e düşürüldü! İyice ince bir şerit oldu */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 6px; 
+            font-size: 11px; /* Sayılar küçültüldü */
+            font-weight: 600;
+            color: #444;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background-color: #f8f9fa;
+        }
+
+        .day-box:hover {
+            background-color: #e6f2ff;
+            color: #007bff;
+        }
+
+        .day-box.today {
+            background-color: #007bff;
+            color: #fff;
+            box-shadow: 0 4px 10px rgba(0, 123, 255, 0.3);
+        }
+
+        .day-box.empty {
+            background-color: transparent;
+            cursor: default;
+        }
+
+        /* 5 ve üstü ders olduğunda (Örn: Sözel) kutuların sıkışmadan alt satıra geçmesi için */
+        .subject-content {
+            flex-wrap: wrap; 
+        }
+
+        .lesson-column {
+            min-width: 65px; /* Kutuların çok fazla küçülüp ezilmesini engeller */
+        }
+
+        /* --- YABANCI DİL (AYT) GÖRÜNÜMÜ İÇİN ÖZEL TASARIM --- */
+        .lang-container {
+            display: flex;
+            width: 100%;
+            gap: 15px;
+            align-items: stretch;
+            margin-top: 5px;
+            height: 115px; /* Konteyner yüksekliği sabitlendi */
+        }
+
+        .lang-sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 5px; /* Butonlar arası boşluk kısıldı */
+            min-width: 95px;
+            border-right: 2px solid #f0f4f8;
+            padding-right: 10px;
+            max-height: 100%; 
+            overflow-y: auto; /* Butonlar kutuya sığmazsa sağda zarif bir kaydırma çubuğu çıkarır */
+        }
+
+        /* Yabancı dil menüsüne çok ince, şık bir kaydırma çubuğu (scrollbar) ekler */
+        .lang-sidebar::-webkit-scrollbar {
+            width: 3px;
+        }
+        .lang-sidebar::-webkit-scrollbar-thumb {
+            background-color: #cce5ff;
+            border-radius: 3px;
+        }
+
+        .lang-btn {
+            background-color: #f8f9fa;
+            border: 1px solid #eef2f5;
+            padding: 6px 8px; /* Buton iç boşlukları küçültüldü */
+            border-radius: 6px;
+            font-size: 10px; /* Yazı boyutu zarifleştirildi */
+            font-weight: 700;
+            color: #555;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: left;
+            flex-shrink: 0; /* Butonların ezilmesini önler */
+        }
+
+        .lang-btn:hover, .lang-btn.active {
+            background-color: #007bff;
+            color: #fff;
+            border-color: #007bff;
+            box-shadow: 0 4px 8px rgba(0, 123, 255, 0.2);
+            transform: translateX(3px); 
+        }
+
+        .lang-content {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+        }
+
+        /* --- ORTA KISIM: 3'LÜ MODÜL (DASHBOARD) TASARIMI --- */
+        .middle-section {
+            width: 95%;
+            max-width: 1400px;
+            margin: 0 auto 20px auto; /* Alttaki takvim kısmıyla arasına 20px boşluk bırakır */
+            
+            /* Ortadaki boş alanı otomatik olarak tamamen doldurması için */
+            flex: 1; 
+            
+            /* Izgara sistemi: Sol(1 birim) - Orta(2 birim) - Sağ(1 birim) */
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr; 
+            gap: 20px;
+        }
+
+        .dashboard-widget {
+            justify-content: flex-start; /* İçerikler yukarıdan başlasın */
+            padding: 20px;
+        }
+
+        .widget-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #f0f4f8;
+        }
+
+        .widget-icon {
+            color: #007bff;
+            font-size: 18px;
+            background-color: #e6f2ff;
+            padding: 8px;
+            border-radius: 8px;
+        }
+
+        .widget-title {
+            font-size: 15px;
+            font-weight: 800;
+            color: #333;
+        }
+
+        /* --- NOTLARIM KUTUSU EKLENTİLERİ --- */
+        .notes-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* --- NOTLARIM BUTONU (KUSURSUZ MERKEZLEME VE ANİMASYON) --- */
+        .add-note-btn {
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            width: 32px; 
+            height: 32px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 0; /* İstenmeyen varsayılan boşlukları sıfırladık */
+            transition: all 0.3s ease; /* Geçişi biraz daha yumuşattık */
+            box-shadow: 0 4px 10px rgba(0, 123, 255, 0.2);
+        }
+
+        /* İkonun kendi ayarları */
+        .add-note-btn i {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            line-height: 1; 
+            transition: transform 0.3s ease; /* Dönme animasyonunu sadece ikona verdik */
+            transform-origin: center center; /* Tam göbeğinden dönmesini garantiledik */
+        }
+
+        .add-note-btn:hover {
+            background-color: #0056b3;
+            transform: scale(1.1); /* Buton sadece büyür */
+        }
+
+        .add-note-btn:hover i {
+            transform: rotate(90deg); /* Artı işareti kendi içinde kusursuzca döner */
+        }
+
+        /* --- GÜNCELLENEN NOT EKLEME MODALI TASARIMI --- */
+        .custom-modal {
+            display: none; 
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.4); 
+            backdrop-filter: blur(4px); 
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.2s ease;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .custom-modal-content {
+            background-color: #fff;
+            width: 95%;
+            max-width: 650px; /* Pencere oldukça genişletildi (Önceki 480px idi) */
+            border-radius: 20px;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.15);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        .modal-header {
+            padding: 15px 25px;
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #eef2f5;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 { font-size: 16px; font-weight: 800; color: #333; }
+
+        .close-modal-btn {
+            font-size: 24px;
+            color: #aaa;
+            cursor: pointer;
+            transition: color 0.2s;
+            line-height: 1;
+        }
+        .close-modal-btn:hover { color: #d9534f; }
+
+        .modal-body {
+            padding: 25px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        /* Başlık ve Açıklama Grupları */
+        .input-group { display: flex; flex-direction: column; gap: 6px; }
+        .input-group label { font-size: 13px; font-weight: 700; color: #444; margin-left: 4px; }
+        .required-star { color: #d9534f; }
+
+        .modal-input, .modal-textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #dce4ec;
+            border-radius: 10px;
+            font-size: 13px;
+            font-family: inherit;
+            color: #333;
+            background-color: #fcfcfc;
+            /* Boyutlandırma anında çalışsın diye "all" yerine sadece renklere animasyon verdik */
+            transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+            outline: none;
+        }
+
+        .modal-input:focus, .modal-textarea:focus { border-color: #007bff; box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1); background-color: #fff; }
+        .modal-textarea { resize: none; min-height: 120px; }
+
+        /* Özel Takvim Alanı Tasarımı (Kusursuz Ortalanmış) */
+        .custom-date-section {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr; /* Ekranı tam ortadan böler, oku merkeze alır */
+            align-items: center;
+            background-color: #f8fbff;
+            border: 1px solid #cce5ff;
+            border-radius: 12px;
+            padding: 12px 18px;
+            gap: 15px;
+        }
+
+        .date-box { 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; /* Kutunun içindeki yazıları ve simgeyi kendi yarısının tam ortasına hizalar */
+            gap: 12px; 
+            width: 100%;
+        }
+
+        .date-icon {
+            width: 38px; height: 38px;
+            background-color: #e6f2ff;
+            color: #007bff;
+            border-radius: 10px;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 18px;
+        }
+        .date-content { display: flex; flex-direction: column; }
+        .date-content span { font-size: 11px; font-weight: 700; color: #888; margin-bottom: 2px;}
+        
+        /* Çirkin tarayıcı takvimini gizleyip sadece tarihi ve metni gösteren modern yapı */
+        .styled-date-input {
+            border: none; background: transparent; font-size: 13px; font-weight: 700; color: #333; outline: none; cursor: pointer; font-family: inherit;
+        }
+        .date-arrow { color: #b3d7ff; font-size: 16px; }
+
+        /* Ayrı Medya Yükleme Alanı */
+        .media-section {
+            border: 1px solid #eef2f5;
+            border-radius: 12px;
+            padding: 15px 20px;
+            background-color: #fdfdfd;
+        }
+        .media-section-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px dashed #e0e0e0;
+        }
+        .media-section-header h4 { font-size: 14px; color: #444; display: flex; align-items: center; gap: 8px; }
+        
+        .custom-upload-btn {
+            background-color: #e6f2ff; color: #007bff; padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 6px;
+        }
+        .custom-upload-btn:hover { background-color: #007bff; color: #fff; transform: translateY(-2px); }
+        .media-input { display: none; } /* Çirkin dosya seçiciyi gizliyoruz */
+
+        /* --- KATEGORİLİ MEDYA ALANI TASARIMLARI --- */
+        .media-preview-area { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 12px; 
+            min-height: 40px; 
+            width: 100%;
+        }
+        
+        .no-media-text { 
+            font-size: 12px; color: #aaa; font-style: italic; width: 100%; text-align: center; margin-top: 10px;
+        }
+
+        .media-category {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background-color: #fff;
+            border: 1px solid #eef2f5;
+            padding: 12px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+        }
+
+        .media-category h5 {
+            font-size: 12px;
+            color: #555;
+            border-bottom: 1px dashed #e0e0e0;
+            padding-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .category-items { display: flex; flex-wrap: wrap; gap: 8px; }
+
+        .preview-item {
+            font-size: 11px; 
+            font-weight: 700; 
+            background: #f0f8ff; 
+            border: 1px solid #cce5ff; 
+            color: #007bff; 
+            padding: 6px 10px; 
+            border-radius: 8px; 
+            display: flex; 
+            align-items: center; 
+            gap: 8px; 
+            transition: all 0.2s;
+        }
+
+        /* İsim Değiştirme (Kalem) Butonu (Küçültüldü) */
+        .edit-media-btn {
+            color: #007bff;
+            cursor: pointer;
+            font-size: 9px; /* 11px'den 9px'e düşürüldü */
+            background-color: #e6f2ff;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.2s;
+            border: 1px solid #cce5ff;
+        }
+        .edit-media-btn i {
+            transform: scale(0.9); /* İkon kendi içinde bir tık daha ufaltıldı */
+        }
+        .edit-media-btn:hover { background-color: #007bff; color: #fff; transform: scale(1.1); }
+
+        /* Butonları sağa yaslamak için kapsayıcı */
+        .media-actions {
+            display: flex;
+            gap: 5px;
+            margin-left: auto; /* İsim ne kadar kısa olursa olsun butonları en sağa iter */
+        }
+
+        /* Çarpı (Sil) Butonu */
+        .remove-media-btn {
+            color: #d9534f;
+            cursor: pointer;
+            font-size: 13px;
+            background-color: #ffeaea;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.2s;
+        }
+        .remove-media-btn:hover { background-color: #d9534f; color: #fff; transform: scale(1.1); }
+
+        /* Alt Butonlar ve Hata Mesajı */
+        .error-msg { color: #d9534f; font-size: 12px; font-weight: 700; display: none; margin-top: -5px; text-align: center; }
+        
+        .modal-footer {
+            padding: 15px 25px; background-color: #f8f9fa; border-top: 1px solid #eef2f5; display: flex; justify-content: flex-end; gap: 12px;
+        }
+        .cancel-note-btn {
+            background-color: #fff; color: #555; border: 1px solid #ccc; padding: 10px 20px; border-radius: 10px; font-weight: 700; font-size: 13px; cursor: pointer; transition: all 0.2s;
+        }
+        .cancel-note-btn:hover { background-color: #f0f0f0; color: #333; }
+        .save-note-btn {
+            background-color: #007bff; color: #fff; border: none; padding: 10px 20px; border-radius: 10px; font-weight: 800; font-size: 13px; cursor: pointer; transition: all 0.2s;
+        }
+        .save-note-btn:hover { background-color: #0056b3; transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0, 123, 255, 0.3); }
+
+        /* --- MEDYA ÖNİZLEME PENCERESİ TASARIMI --- */
+        .media-preview-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.85); /* Karanlık ve saydam arka plan */
+            backdrop-filter: blur(5px);
+            z-index: 2000; /* Not ekleme penceresinin de üstünde durması için yüksek z-index */
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            animation: fadeIn 0.2s ease;
+        }
+
+        .close-preview-btn {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            font-size: 40px;
+            color: white;
+            cursor: pointer;
+            transition: color 0.2s;
+            z-index: 2001;
+        }
+
+        .close-preview-btn:hover { color: #d9534f; }
+
+        .preview-content-container {
+            max-width: 95%;
+            max-height: 95%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Fotoğraf Önizlemesi */
+        .preview-content-container img {
+            max-width: 100%;
+            max-height: 90vh;
+            border-radius: 8px;
+            box-shadow: 0 5px 25px rgba(0,0,0,0.5);
+            animation: scaleUp 0.3s ease;
+        }
+
+        /* PDF Önizlemesi */
+        .preview-content-container iframe {
+            width: 80vw;
+            height: 85vh;
+            border: none;
+            border-radius: 8px;
+            background-color: white;
+            box-shadow: 0 5px 25px rgba(0,0,0,0.5);
+            animation: scaleUp 0.3s ease;
+        }
+
+        @keyframes scaleUp { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+        /* Dosya listesindeki kutucukların tıklanabilir olması için küçük bir ayar */
+        .preview-item { cursor: pointer; }
+        .preview-item:hover { background-color: #e6f2ff; transform: translateY(-2px); }
+
+        /* --- EKLENEN NOTLARIN LİSTE TASARIMI --- */
+        .notes-content {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 5px; /* Başlıkla arasına uygun boşluk */
+            overflow-y: auto; 
+            flex: 1; /* Sabit 250px sınırını kaldırdık, kutunun en altına kadar esneyecek! */
+            padding: 4px 5px 10px 4px; /* Üstteki 4px padding, kartın havaya kalkma animasyonu için pay bırakır (beyazlığı önler) */
+        }
+
+        /* Kaydırma çubuğu (scrollbar) tasarımı */
+        .notes-content::-webkit-scrollbar { width: 4px; }
+        .notes-content::-webkit-scrollbar-thumb { background-color: #cce5ff; border-radius: 4px; }
+
+        .note-card {
+            background-color: #fcfcfc;
+            border: 1px solid #eef2f5;
+            border-radius: 12px;
+            padding: 10px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+        }
+
+        .note-card:hover {
+            border-color: #cce5ff;
+            background-color: #f0f8ff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0, 123, 255, 0.08);
+        }
+
+        .note-card-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .note-card-icon {
+            color: #007bff;
+            background-color: #e6f2ff;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .note-card-title {
+            font-size: 12px;
+            font-weight: 800;
+            color: #333;
+            max-width: 140px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis; /* Çok uzun isimleri ... ile keser */
+        }
+
+        .note-card-date {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 10px;
+            font-weight: 700;
+            color: #007bff;
+            background-color: #e6f2ff;
+            padding: 4px 8px;
+            border-radius: 6px;
+            white-space: nowrap; /* Tarih yazısının ne olursa olsun tek satırda kalmasını sağlar */
+            flex-shrink: 0; /* Kutunun ezilip küçülmesini engeller */
+        }
+
+        /* --- NOT GÖRÜNTÜLEME MODALI ÖZEL TASARIMLARI --- */
+        .view-modal-body {
+            gap: 15px;
+        }
+        
+        .view-note-date {
+            display: none; /* Varsayılan olarak gizli, tarih varsa JS ile açılacak */
+            align-items: center;
+            gap: 5px;
+            font-size: 11px;
+            font-weight: 700;
+            color: #007bff;
+            background-color: #e6f2ff;
+            padding: 5px 12px;
+            border-radius: 8px;
+            width: fit-content;
+        }
+        
+        .view-note-title {
+            font-size: 20px;
+            font-weight: 800;
+            color: #333;
+            margin-bottom: 5px;
+            word-wrap: break-word;
+        }
+        
+        .view-note-content {
+            background-color: #f8fbff;
+            border: 1px solid #eef2f5;
+            border-radius: 12px;
+            padding: 18px;
+            font-size: 14px;
+            color: #444;
+            line-height: 1.6;
+            white-space: pre-wrap; /* Kullanıcının girdiği satır atlamalarını (Enter) korur */
+            min-height: 100px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        /* İçerik metni kaydırma çubuğu */
+        .view-note-content::-webkit-scrollbar { width: 5px; }
+        .view-note-content::-webkit-scrollbar-thumb { background-color: #cce5ff; border-radius: 5px; }
+
+        .view-note-media-section {
+            margin-top: 10px;
+            border-top: 1px dashed #e0e0e0;
+            padding-top: 15px;
+            display: none; /* Medya yoksa gizli kalır */
+        }
+        
+        .view-note-media-section h4 {
+            font-size: 13px;
+            color: #555;
+            margin-bottom: 10px;
+        }
+        
+        .view-media-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .view-media-item {
+            background-color: #fff;
+            border: 1px solid #cce5ff;
+            padding: 10px 15px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: 700;
+            color: #007bff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+
+        /* --- AÇILIŞ (YÜKLEME) EKRANI TASARIMI --- */
+        .page-loader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #f4f7f6 0%, #e6f2ff 100%); /* Sayfaya uyumlu ferah arka plan */
+            z-index: 9999; /* Her şeyin en üstünde durmasını sağlar */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.5s ease, visibility 0.5s ease;
+        }
+
+        /* Yükleme bittiğinde tetiklenecek yok olma sınıfı */
+        .page-loader.hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .loader-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            animation: floatLoader 2s infinite ease-in-out; /* Havada asılı durma efekti */
+        }
+
+        .loader-logo {
+            width: 70px;
+            height: 70px;
+            font-size: 30px;
+            box-shadow: 0 8px 25px rgba(0, 123, 255, 0.3);
+        }
+
+        .loader-title {
+            font-size: 26px;
+            font-weight: 800;
+            color: #333;
+            letter-spacing: 1px;
+            margin-top: 5px;
+        }
+
+        .loader-text {
+            font-size: 13px;
+            font-weight: 600;
+            color: #777;
+            margin-top: 5px;
+            letter-spacing: 0.5px;
+        }
+
+        /* Dönen Mavi Çember */
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #cce5ff;
+            border-top: 4px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-top: 5px;
+        }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes floatLoader {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+
+        /* --- BİLDİRİM BALONCUĞU (TOAST) TASARIMI --- */
+        .action-toast {
+            position: fixed;
+            top: -100px; /* Başlangıçta ekran dışında */
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #ffffff;
+            padding: 12px 25px;
+            border-radius: 50px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            z-index: 3000;
+            transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            display: flex;
+            align-items: center;
+            border: 1px solid #eef2f5;
+        }
+
+        .action-toast.show {
+            top: 30px; /* Gösterildiğinde yukarıdan 30px aşağı iner */
+        }
+
+        .toast-content {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .toast-spinner {
+            width: 18px;
+            height: 18px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        #toastText {
+            font-size: 14px;
+            font-weight: 700;
+            color: #333;
+        }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* --- KÜRESEL İPUCU (GLOBAL TOOLTIP) TASARIMI --- */
+        #global-custom-tooltip {
+            position: fixed;
+            background-color: #222; /* Koyu, şık arka plan */
+            color: #fff;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 600;
+            pointer-events: none; /* Mouse ile üzerine gelmeyi engeller, takılma yapmaz */
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s ease, visibility 0.2s ease, transform 0.2s ease;
+            z-index: 9999;
+            transform: translate(-50%, 5px); /* Başlangıçta hafif aşağıda */
+            white-space: nowrap;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        #global-custom-tooltip.show {
+            opacity: 1;
+            visibility: visible;
+            transform: translate(-50%, -5px); /* Açılırken yukarı doğru tatlıca kayar */
+        }
+
+        /* İpucu kutusunun altındaki o küçük ok işareti */
+        #global-custom-tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #222 transparent transparent transparent;
+        }
+
+        /* --- DENEME MODALI ÖZEL TASARIMLARI --- */
+        .exam-tabs {
+            display: flex;
+            gap: 30px;
+        }
+
+        .exam-tab-btn {
+            background: none;
+            border: none;
+            font-size: 18px;
+            font-weight: 800;
+            color: #aaa;
+            cursor: pointer;
+            padding-bottom: 8px;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .exam-tab-btn:hover { color: #555; }
+        .exam-tab-btn.active {
+            color: #007bff;
+            border-bottom-color: #007bff;
+        }
+
+        .subject-input-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #f8f9fa;
+            padding: 12px 18px;
+            border-radius: 12px;
+            border: 1px solid #eef2f5;
+            margin-bottom: 10px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .subject-input-row:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+            border-color: #cce5ff;
+        }
+
+        .subject-name {
+            font-size: 13px;
+            font-weight: 800;
+            color: #444;
+            flex: 1;
+        }
+
+        .dyb-inputs { display: flex; gap: 12px; }
+
+        .dyb-box { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        .dyb-box label { font-size: 10px; font-weight: 800; color: #888; }
+        
+        .dyb-input {
+            width: 45px;
+            padding: 6px 4px;
+            border: 1px solid #dce4ec;
+            border-radius: 6px;
+            text-align: center;
+            font-size: 13px;
+            font-weight: 700;
+            color: #333;
+            transition: all 0.2s;
+            outline: none;
+        }
+
+        /* Doğru-Yanlış-Boş Renk Vurguları */
+        .dyb-box:nth-child(1) label { color: #28a745; }
+        .dyb-box:nth-child(1) .dyb-input:focus { border-color: #28a745; box-shadow: 0 0 0 2px rgba(40, 167, 69, 0.1); }
+        
+        .dyb-box:nth-child(2) label { color: #d9534f; }
+        .dyb-box:nth-child(2) .dyb-input:focus { border-color: #d9534f; box-shadow: 0 0 0 2px rgba(217, 83, 79, 0.1); }
+        
+        .dyb-box:nth-child(3) label { color: #6c757d; }
+        .dyb-box:nth-child(3) .dyb-input:focus { border-color: #6c757d; box-shadow: 0 0 0 2px rgba(108, 117, 125, 0.1); }
+        
+        /* Inputlardaki çirkin yukarı/aşağı oklarını gizler */
+        .dyb-input::-webkit-outer-spin-button, .dyb-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        .dyb-input[type=number] { -moz-appearance: textfield; }
+
+        /* --- DERS LİSTESİ KAYDIRMA (SCROLL) TASARIMI --- */
+        .subject-inputs-container {
+            max-height: 260px; /* Ekranda yaklaşık 4 derslik yer kaplar */
+            overflow-y: auto;  /* Taşan dersler için aşağı/yukarı kaydırma açar */
+            padding-right: 8px; /* Scrollbar ile yazılar yapışmasın diye pay */
+        }
+        
+        /* Ders listesine şık ve ince bir scrollbar */
+        .subject-inputs-container::-webkit-scrollbar { width: 5px; }
+        .subject-inputs-container::-webkit-scrollbar-thumb { background-color: #cce5ff; border-radius: 5px; }
+
+        /* --- DENEMELERİM KUTUSU İÇİ TASARIMLAR (KOMPAKT & SCROLL) --- */
+        .exams-widget-content {
+            display: flex;
+            flex-direction: column;
+            gap: 10px; /* Boşluklar küçültüldü */
+            margin-top: 10px;
+            flex: 1;
+        }
+        
+        /* --- DENEMELERİM KUTUSU İÇİ TASARIMLAR (YAN YANA & 2 KART SCROLL) --- */
+        .exam-list-section {
+            background: #f8fbff;
+            border: 1px solid #eef2f5;
+            border-radius: 10px;
+            padding: 10px 15px;
+            display: flex;
+            flex-direction: row; /* YENİ: Başlık ve listeyi yan yana dizer */
+            align-items: center; /* YENİ: Başlığı dikeyde tam ortaya hizalar */
+            gap: 15px;
+            height: 100px; /* YENİ: Dış kutuyu tam 2 kart sığacak boyuta kilitler */
+        }
+        
+        .exam-list-title {
+            font-size: 13px;
+            font-weight: 800;
+            color: #007bff;
+            margin-bottom: 0; /* Alt boşluğu sildik */
+            border-bottom: none; /* Alt çizgiyi sildik */
+            border-right: 2px dashed #cce5ff; /* YENİ: Sağ tarafa ayırıcı dikey çizgi çektik */
+            padding-bottom: 0;
+            padding-right: 15px;
+            flex-shrink: 0; 
+            width: 85px; /* YENİ: Yazıyı 'TYT' ve 'Denemeleri' olarak şıkça 2 satıra böler */
+            text-align: center;
+            line-height: 1.3;
+        }
+        
+        .exam-mini-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px; 
+            overflow-y: auto; 
+            padding: 4px 5px 4px 4px; /* YENİ: Üstten ve alttan 4px nefes payı verdik ki hover animasyonu taşmasın */
+            flex: 1; 
+            max-height: 83px; /* YENİ: Üstte ve altta verdiğimiz 4px paddingleri telafi etmek için 75px'i 83px yaptık. Hala tam 2 kart sığar! */
+        }
+
+        /* İnce ve şık kaydırma çubuğu tasarımı */
+        .exam-mini-list::-webkit-scrollbar { width: 4px; }
+        .exam-mini-list::-webkit-scrollbar-thumb { background-color: #cce5ff; border-radius: 4px; }
+        
+        .exam-mini-card {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #fff;
+            padding: 6px 10px; /* Kartlar kibarlaştırıldı */
+            border-radius: 8px;
+            border: 1px solid #e1e9f0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            transition: transform 0.2s, box-shadow 0.2s;
+            flex-shrink: 0; /* Kartların ezilmesini engeller */
+        }
+        
+        .exam-mini-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,123,255,0.05);
+            border-color: #cce5ff;
+        }
+        
+        /* YENİ: İsim ve tarih artık alt alta değil YAN YANA */
+        .exam-mini-card-left {
+            display: flex;
+            flex-direction: row; 
+            align-items: center;
+            gap: 8px; /* İsim ve Tarih arası boşluk */
+            overflow: hidden;
+            flex: 1;
+            padding-right: 10px;
+        }
+        
+        .exam-mini-title {
+            font-size: 12px; /* Yazı boyutu küçüldü */
+            font-weight: 700;
+            color: #333;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .exam-mini-date {
+            font-size: 10px;
+            font-weight: 600;
+            color: #888;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        
+        .exam-mini-net {
+            font-size: 12px; /* Net yazısı küçültüldü */
+            font-weight: 900;
+            color: #17a2b8;
+            background: #e0f7fa;
+            padding: 3px 6px;
+            border-radius: 6px;
+            flex-shrink: 0; 
+        }
+        
+        .chart-placeholder-area {
+            background: #fff;
+            border: 2px dashed #cce5ff;
+            border-radius: 12px;
+            flex: 1;
+            min-height: 100px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: #888;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        /* --- GELİŞİM GRAFİĞİ TASARIMI --- */
+        .exam-chart-container {
+            background: #fff;
+            border: 1px solid #eef2f5;
+            border-radius: 12px;
+            padding: 10px 15px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 180px; /* Grafiğin sıkışmasını engeller */
+        }
+        
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .chart-toggles {
+            display: flex;
+            background: #f4f7f6;
+            border-radius: 6px;
+            overflow: hidden;
+            border: 1px solid #dce4ec;
+        }
+
+        .chart-toggle-btn {
+            background: transparent;
+            border: none;
+            padding: 4px 12px;
+            font-size: 11px;
+            font-weight: 800;
+            color: #888;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .chart-toggle-btn.active {
+            background: #007bff;
+            color: #fff;
+        }
+
+        .canvas-wrapper {
+            flex: 1;
+            position: relative;
+            width: 100%;
+        }
+
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+</head>
+<body>
+
+    <div id="pageLoader" class="page-loader">
+        <div class="loader-content">
+            <div class="logo-icon loader-logo">
+                <i class="fa-solid fa-book-open"></i>
+            </div>
+            <h2 class="loader-title">Ders Planlayıcı</h2>
+            <div class="spinner"></div>
+            <p class="loader-text">Verileriniz senkronize ediliyor...</p>
+        </div>
+    </div>
+
+    <header class="header">
+        
+        <div class="countdown-container">
+            <div class="countdown-header">
+                <i class="fa-solid fa-hourglass-half countdown-icon"></i>
+                <span class="countdown-title">YKS 2026</span>
+            </div>
+            <div class="countdown-timer" id="yks-timer">
+                Hesaplanıyor...
+            </div>
+        </div>
+
+        <div class="logo-container" onclick="window.location.href='ders.html'">
+            <div class="logo-icon">
+                <i class="fa-solid fa-book-open"></i>
+            </div>
+            <h1 class="logo-text">Ders Planlayıcı</h1>
+        </div>
+
+        <button class="menu-btn" title="Menü">
+            <span class="menu-text">Menü</span>
+            <i class="fa-solid fa-bars"></i>
+        </button>
+
+    </header>
+
+    <section class="middle-section">
+        
+        <div class="widget-box dashboard-widget" style="display: flex; flex-direction: column;">
+            <div class="widget-header notes-header">
+                <div class="header-left">
+                    <i class="fa-solid fa-chart-line widget-icon"></i>
+                    <h2 class="widget-title">Denemelerim</h2>
+                </div>
+                <button class="add-note-btn" id="openExamModalBtn" data-custom-title="Yeni Deneme Ekle">
+                    <i class="fa-solid fa-plus"></i>
+                </button>
+            </div>
+            
+            <div class="exams-widget-content">
+                <div class="exam-list-section">
+                    <h3 class="exam-list-title">TYT Denemeleri</h3>
+                    <div id="tyt-exam-list" class="exam-mini-list">
+                        <div class="placeholder-text" style="font-size:12px; margin-top:5px;">Henüz TYT denemesi eklemedin...</div>
+                    </div>
+                </div>
+                
+                <div class="exam-list-section">
+                    <h3 class="exam-list-title">AYT Denemeleri</h3>
+                    <div id="ayt-exam-list" class="exam-mini-list">
+                        <div class="placeholder-text" style="font-size:12px; margin-top:5px;">Henüz AYT denemesi eklemedin...</div>
+                    </div>
+                </div>
+
+                <div class="exam-chart-container">
+                    <div class="chart-header">
+                        <span style="font-size: 12px; font-weight: 800; color: #555;"><i class="fa-solid fa-chart-area"></i> Gelişim Grafiği</span>
+                        <div class="chart-toggles">
+                            <button class="chart-toggle-btn active" data-chart="tyt">TYT</button>
+                            <button class="chart-toggle-btn" data-chart="ayt">AYT</button>
+                        </div>
+                    </div>
+                    <div class="canvas-wrapper">
+                        <canvas id="netChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="widget-box dashboard-widget schedule-widget">
+            <div class="widget-header">
+                <i class="fa-solid fa-calendar-week widget-icon"></i>
+                <h2 class="widget-title">Ders Programı</h2>
+            </div>
+            <div class="placeholder-text">Haftalık program tablosu buraya gelecek...</div>
+        </div>
+
+        <div class="widget-box dashboard-widget notes-widget">
+            <div class="widget-header notes-header">
+                <div class="header-left">
+                    <i class="fa-solid fa-pen-to-square widget-icon"></i>
+                    <h2 class="widget-title">Notlarım</h2>
+                </div>
+                <button class="add-note-btn" id="openNoteModalBtn" data-custom-title="Yeni Not Ekle">
+                    <i class="fa-solid fa-plus"></i>
+                </button>
+            </div>
+            <div class="notes-content" id="notes-list">
+                <div class="placeholder-text">Henüz not eklemedin...</div>
+            </div>
+        </div>
+
+    </section>
+
+    <main class="main-content">
+        
+        <div class="widget-box calendar-widget">
+            <div class="calendar-header">
+                <button class="cal-btn"><i class="fa-solid fa-chevron-left"></i></button>
+                <h2 id="month-year">Yükleniyor...</h2>
+                <button class="cal-btn"><i class="fa-solid fa-chevron-right"></i></button>
+            </div>
+            
+            <div class="calendar-weekdays">
+                <span>Pzt</span><span>Sal</span><span>Çar</span><span>Per</span><span>Cum</span><span>Cmt</span><span>Paz</span>
+            </div>
+            
+            <div class="calendar-days" id="calendar-days">
+                </div>
+        </div>
+
+        <div class="widget-box subject-widget">
+            <div class="subject-header">
+                <div class="custom-select" id="examTypeSelect">
+                    <div class="select-selected" data-val="tyt">TYT <i class="fa-solid fa-chevron-down" style="font-size:10px;"></i></div>
+                    <div class="select-items select-hide">
+                        <div data-val="tyt">TYT</div>
+                        <div data-val="ayt">AYT</div>
+                    </div>
+                </div>
+                
+                <h2 class="subject-title">Konu Çalışması</h2>
+                
+                <div class="custom-select" id="trackSelect">
+                    <div class="select-selected" data-val="sayisal">Sayısal <i class="fa-solid fa-chevron-down" style="font-size:10px;"></i></div>
+                    <div class="select-items select-hide">
+                        <div data-val="sayisal">Sayısal</div>
+                        <div data-val="ea">Eşit Ağırlık</div>
+                        <div data-val="sozel">Sözel</div>
+                        <div data-val="dil">Dil</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="subject-content" id="subject-container">
+                </div>
+        </div>
+
+    </main>
+
+    <div id="noteModal" class="custom-modal">
+        <div class="custom-modal-content">
+            <div class="modal-header">
+                <h3>Yeni Not Ekle</h3>
+                <span class="close-modal-btn" id="closeNoteModalBtn">&times;</span>
+            </div>
+            
+            <div class="modal-body">
+                <div class="input-group">
+                    <label>Not Başlığı <span class="required-star">*</span></label>
+                    <input type="text" id="noteTitle" class="modal-input" placeholder="Örn: Fizik Kuvvetler Konu Özeti">
+                </div>
+                
+                <div class="input-group">
+                    <label>Açıklama <span class="required-star">*</span></label>
+                    <textarea id="noteContent" class="modal-textarea" placeholder="Not detaylarını buraya yaz..."></textarea>
+                </div>
+                
+                <div class="custom-date-section">
+                    <div class="date-box">
+                        <div class="date-icon"><i class="fa-regular fa-calendar"></i></div>
+                        <div class="date-content">
+                            <span>Başlangıç Tarihi</span>
+                            <input type="date" id="noteStartDate" class="styled-date-input">
+                        </div>
+                    </div>
+                    <i class="fa-solid fa-arrow-right date-arrow"></i>
+                    <div class="date-box">
+                        <div class="date-icon"><i class="fa-regular fa-calendar-check"></i></div>
+                        <div class="date-content">
+                            <span>Bitiş Tarihi</span>
+                            <input type="date" id="noteEndDate" class="styled-date-input">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="media-section">
+                    <div class="media-section-header">
+                        <h4><i class="fa-solid fa-paperclip"></i> Yüklenen Medyalar</h4>
+                        <label for="noteMedia" class="custom-upload-btn">
+                            <i class="fa-solid fa-plus"></i> Medya Ekle
+                        </label>
+                        <input type="file" id="noteMedia" class="media-input" multiple>
+                    </div>
+                    <div id="media-preview-container" class="media-preview-area">
+                        <span class="no-media-text" id="noMediaText">Henüz medya yüklenmedi.</span>
+                        
+                        <div class="media-category" id="imageCategory" style="display: none;">
+                            <h5><i class="fa-regular fa-images"></i> Görüntüler</h5>
+                            <div class="category-items" id="imageItems"></div>
+                        </div>
+                        
+                        <div class="media-category" id="documentCategory" style="display: none;">
+                            <h5><i class="fa-regular fa-file-lines"></i> Belgeler</h5>
+                            <div class="category-items" id="documentItems"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <p id="noteErrorMsg" class="error-msg">Lütfen zorunlu alanları (Başlık ve Açıklama) doldurun!</p>
+            </div>
+            
+            <div class="modal-footer">
+                <button class="cancel-note-btn" id="cancelNoteBtn">İptal Et</button>
+                <button class="save-note-btn" id="saveNoteBtn">Notu Kaydet</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="mediaPreviewModal" class="media-preview-overlay">
+        <span class="close-preview-btn" id="closeMediaPreviewBtn">&times;</span>
+        <div class="preview-content-container" id="previewContentContainer">
+            </div>
+    </div>
+
+    <div id="renameMediaModal" class="custom-modal">
+        <div class="custom-modal-content" style="max-width: 400px;"> <div class="modal-header">
+                <h3>Medya Adını Düzenle</h3>
+                <span class="close-modal-btn" id="closeRenameModalBtn">&times;</span>
+            </div>
+            
+            <div class="modal-body">
+                <div class="input-group">
+                    <label>Yeni Medya Adı</label>
+                    <input type="text" id="newMediaNameInput" class="modal-input" placeholder="Örn: Matematik Çıkmış Sorular">
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <button class="cancel-note-btn" id="cancelRenameBtn">İptal Et</button>
+                <button class="save-note-btn" id="saveRenameBtn">Kaydet</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="viewNoteModal" class="custom-modal">
+        <div class="custom-modal-content">
+            <div class="modal-header">
+                <h3>Not Detayı</h3>
+                <span class="close-modal-btn" id="closeViewNoteModalBtn">&times;</span>
+            </div>
+            
+            <div class="modal-body view-modal-body">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 15px; margin-bottom: 10px;">
+                    <h2 id="viewNoteTitle" class="view-note-title" style="margin: 0; flex: 1; word-wrap: break-word; font-size: 20px; font-weight: 800; color: #333;"></h2>
+                    <div id="viewNoteDate" class="view-note-date" style="display: none; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; color: #007bff; background-color: #e6f2ff; padding: 5px 12px; border-radius: 8px; flex-shrink: 0;"></div>
+                </div>
+                
+                <div id="viewNoteContent" class="view-note-content" style="background-color: #f8fbff; border: 1px solid #eef2f5; border-radius: 12px; padding: 18px; font-size: 14px; color: #444; line-height: 1.6; white-space: pre-wrap; min-height: 100px; max-height: 300px; overflow-y: auto;"></div>
+                
+                <div id="viewNoteMediaSection" class="view-note-media-section" style="margin-top: 10px; border-top: 1px dashed #e0e0e0; padding-top: 15px; display: none;">
+                    <h4 style="font-size: 13px; color: #555; margin-bottom: 10px;"><i class="fa-solid fa-paperclip"></i> Ekli Medyalar (Açmak için tıkla)</h4>
+                    <div id="viewNoteMediaList" class="view-media-list" style="display: flex; flex-wrap: wrap; gap: 10px;"></div>
+                </div>
+            </div>
+            
+            <div class="modal-footer" style="justify-content: space-between;">
+                <button class="save-note-btn" id="editNoteBtn" style="background-color: #ffc107; color: #333;"><i class="fa-solid fa-pen"></i> Düzenle</button>
+                <button class="cancel-note-btn" id="closeViewNoteBtn">Kapat</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="examModal" class="custom-modal">
+        <div class="custom-modal-content" style="max-width: 550px;">
+            <div class="modal-header" style="justify-content: center; position: relative;">
+                <div class="exam-tabs">
+                    <button class="exam-tab-btn active" data-target="tyt-section">TYT</button>
+                    <button class="exam-tab-btn" data-target="ayt-section">AYT</button>
+                </div>
+                <span class="close-modal-btn" id="closeExamModalBtn" style="position: absolute; right: 25px;">&times;</span>
+            </div>
+            
+            <div class="modal-body" style="gap: 15px;">
+                <div style="display: flex; gap: 15px;">
+                    <div class="input-group" style="flex: 2;">
+                        <label>Deneme Adı <span class="required-star">*</span></label>
+                        <input type="text" id="examTitleInput" class="modal-input" placeholder="Örn: 3D Yayınları Türkiye Geneli">
+                    </div>
+                    <div class="input-group" style="flex: 1;">
+                        <label>Tarih <span class="required-star">*</span></label>
+                        <input type="date" id="examDateInput" class="modal-input">
+                    </div>
+                </div>
+
+                <div id="tyt-section" class="exam-section active-section">
+                    <div class="subject-inputs-container" id="tyt-subjects-container"></div>
+                </div>
+
+                <div id="ayt-section" class="exam-section" style="display: none;">
+                    <div class="input-group" style="margin-bottom: 15px;">
+                        <label>Alan Seçimi</label>
+                        <select id="aytTrackSelect" class="modal-input" style="cursor: pointer; background-color: #f0f8ff; color: #007bff; font-weight: 700;">
+                            <option value="sayisal">Sayısal</option>
+                            <option value="ea">Eşit Ağırlık</option>
+                            <option value="sozel">Sözel</option>
+                            <option value="dil">Yabancı Dil</option>
+                        </select>
+                    </div>
+                    <div class="subject-inputs-container" id="ayt-subjects-container"></div>
+                </div>
+
+                <div id="totalNetBox" style="background: #fdfefe; border: 1px solid #e1e9f0; padding: 10px 18px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; margin-top: 10px; margin-bottom: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.02);">
+                    <span style="font-weight: 600; color: #5ea8b9; font-size: 14px; letter-spacing: 0.3px;">
+                        <i class="fa-solid fa-calculator" style="margin-right: 5px; opacity: 0.8;"></i> Toplam Net
+                    </span>
+                    <span id="totalNetValue" style="font-weight: 700; color: #4a5568; font-size: 19px; letter-spacing: 0.5px;">0.00</span>
+                </div>
+                
+                <p id="examErrorMsg" class="error-msg">Lütfen Deneme Adı ve Tarihini girin!</p>
+            </div>
+            
+            <div class="modal-footer" style="justify-content: space-between;">
+                <button class="cancel-note-btn" id="deleteExamBtn" style="background-color: #ffeaea; color: #d9534f; border: 1px solid #ffc2c2; display: none;"><i class="fa-solid fa-trash"></i> Sil</button>
+                <div style="display: flex; gap: 12px;">
+                    <button class="cancel-note-btn" id="cancelExamBtn">İptal Et</button>
+                    <button class="save-note-btn" id="saveExamBtn">Denemeyi Ekle</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="viewExamModal" class="custom-modal">
+        <div class="custom-modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3>Deneme Detayı</h3>
+                <span class="close-modal-btn" id="closeViewExamModalBtn">&times;</span>
+            </div>
+            
+            <div class="modal-body view-modal-body">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 15px; margin-bottom: 5px;">
+                    <h2 id="viewExamTitle" class="view-note-title" style="margin: 0; flex: 1; word-wrap: break-word; font-size: 18px; font-weight: 800; color: #333;"></h2>
+                    <div id="viewExamDate" class="view-note-date" style="display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; color: #007bff; background-color: #e6f2ff; padding: 5px 12px; border-radius: 8px; flex-shrink: 0;"></div>
+                </div>
+                
+                <div id="viewExamTrackBadge" style="font-size: 10px; font-weight: 800; color: #888; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px;"></div>
+                
+                <div id="viewExamSubjects" style="background-color: #f8fbff; border: 1px solid #eef2f5; border-radius: 12px; padding: 15px; max-height: 250px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;">
+                    </div>
+                
+                <div style="margin-top: 10px; background: #e0f7fa; border: 1px solid #17a2b8; padding: 12px 18px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-weight: 800; color: #17a2b8; font-size: 14px;"><i class="fa-solid fa-chart-line"></i> Toplam Net:</span>
+                    <span id="viewExamTotalNet" style="font-weight: 900; color: #333; font-size: 22px;"></span>
+                </div>
+            </div>
+            
+            <div class="modal-footer" style="justify-content: space-between;">
+                <button class="save-note-btn" id="editExamBtn" style="background-color: #ffc107; color: #333; box-shadow: none;"><i class="fa-solid fa-pen"></i> Düzenle</button>
+                <button class="cancel-note-btn" id="closeViewExamBtn">Kapat</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="examSaveConfirmModal" class="custom-modal" style="z-index: 2500;">
+        <div class="custom-modal-content" style="max-width: 400px; text-align: center; padding: 30px;">
+            <i class="fa-solid fa-circle-question" style="font-size: 50px; color: #007bff; margin-bottom: 15px;"></i>
+            <h3 style="margin-bottom: 10px; color: #333;">Değişiklikleri Kaydet</h3>
+            <p style="color: #666; font-size: 14px; margin-bottom: 20px;">Denemedeki değişiklikleri kaydetmek istediğinize emin misiniz?</p>
+            <div style="display: flex; justify-content: center; gap: 10px;">
+                <button class="cancel-note-btn" onclick="document.getElementById('examSaveConfirmModal').style.display='none'">Hayır, Dön</button>
+                <button class="save-note-btn" id="yesExamSaveBtn">Evet, Kaydet</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="examCancelConfirmModal" class="custom-modal" style="z-index: 2500;">
+        <div class="custom-modal-content" style="max-width: 400px; text-align: center; padding: 30px;">
+            <i class="fa-solid fa-triangle-exclamation" style="font-size: 50px; color: #d9534f; margin-bottom: 15px;"></i>
+            <h3 style="margin-bottom: 10px; color: #333;">Kaydedilmemiş Değişiklikler</h3>
+            <p style="color: #666; font-size: 14px; margin-bottom: 20px;">Kaydetmediğiniz veriler var. Çıkmak istediğinize emin misiniz?</p>
+            <div style="display: flex; justify-content: center; gap: 10px;">
+                <button class="cancel-note-btn" onclick="document.getElementById('examCancelConfirmModal').style.display='none'">Hayır, Kal</button>
+                <button class="save-note-btn" id="yesExamCancelBtn" style="background-color: #d9534f;">Evet, Çık</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="examDeleteConfirmModal" class="custom-modal" style="z-index: 2500;">
+        <div class="custom-modal-content" style="max-width: 400px; text-align: center; padding: 30px;">
+            <i class="fa-solid fa-trash-can" style="font-size: 50px; color: #d9534f; margin-bottom: 15px;"></i>
+            <h3 style="margin-bottom: 10px; color: #333;">Denemeyi Sil</h3>
+            <p style="color: #666; font-size: 14px; margin-bottom: 20px;">Bu denemeyi ve tüm net verilerini kalıcı olarak silmek istediğinize emin misiniz?</p>
+            <div style="display: flex; justify-content: center; gap: 10px;">
+                <button class="cancel-note-btn" onclick="document.getElementById('examDeleteConfirmModal').style.display='none'">Hayır, İptal</button>
+                <button class="save-note-btn" id="yesExamDeleteBtn" style="background-color: #d9534f;">Evet, Sil</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="saveConfirmModal" class="custom-modal" style="z-index: 2500;">
+        <div class="custom-modal-content" style="max-width: 400px; text-align: center; padding: 30px;">
+            <i class="fa-solid fa-circle-question" style="font-size: 50px; color: #007bff; margin-bottom: 15px;"></i>
+            <h3 style="margin-bottom: 10px; color: #333;">Değişiklikleri Kaydet</h3>
+            <p style="color: #666; font-size: 14px; margin-bottom: 20px;">Yaptığınız değişiklikleri kaydetmek istediğinize emin misiniz?</p>
+            <div style="display: flex; justify-content: center; gap: 10px;">
+                <button class="cancel-note-btn" id="noSaveBtn">Hayır, Dön</button>
+                <button class="save-note-btn" id="yesSaveBtn">Evet, Kaydet</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="cancelConfirmModal" class="custom-modal" style="z-index: 2500;">
+        <div class="custom-modal-content" style="max-width: 400px; text-align: center; padding: 30px;">
+            <i class="fa-solid fa-triangle-exclamation" style="font-size: 50px; color: #d9534f; margin-bottom: 15px;"></i>
+            <h3 style="margin-bottom: 10px; color: #333;">Kaydedilmemiş Değişiklikler</h3>
+            <p style="color: #666; font-size: 14px; margin-bottom: 20px;">Kaydetmediğiniz değişiklikler var. Çıkmak istediğinize emin misiniz?</p>
+            <div style="display: flex; justify-content: center; gap: 10px;">
+                <button class="cancel-note-btn" id="noCancelBtn">Hayır, Kal</button>
+                <button class="save-note-btn" id="yesCancelBtn" style="background-color: #d9534f;">Evet, Çık</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="actionToast" class="action-toast">
+        <div class="toast-content">
+            <div class="toast-spinner"></div>
+            <span id="toastText">Kaydediliyor...</span>
+        </div>
+    </div>
+
+    <script type="module">
+        // =================================================================
+        // 1. FIREBASE BAĞLANTISI VE KURULUM
+        // =================================================================
+        // YENİ: collection ve getDocs eklendi
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAKpk8odLUEZTJh_4qvyrcu59t4eoNNIe8",
+            authDomain: "tripturkey-79e75.firebaseapp.com",
+            projectId: "tripturkey-79e75",
+            storageBucket: "tripturkey-79e75.firebasestorage.app",
+            messagingSenderId: "69790477258",
+            appId: "1:69790477258:web:6ad1f6bc4f9bc437e2bd33"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // =================================================================
+        // 2. YKS 2026 SAYACI
+        // =================================================================
+        const targetDate = new Date(2026, 5, 20, 10, 15, 0).getTime(); 
+
+        function updateCountdown() {
+            const now = new Date().getTime();
+            const distance = targetDate - now;
+
+            if (distance < 0) {
+                document.getElementById("yks-timer").innerHTML = "<div class='time-box'><span class='time-val'>Sınav</span><span class='time-label'>BAŞLADI</span></div>";
+                return;
+            }
+
+            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+
+            const h = hours < 10 ? "0" + hours : hours;
+            const m = minutes < 10 ? "0" + minutes : minutes;
+
+            document.getElementById("yks-timer").innerHTML = `
+                <div class="time-box">
+                    <span class="time-val">${days}</span>
+                    <span class="time-label">GÜN</span>
+                </div>
+                <span class="time-sep">:</span>
+                <div class="time-box">
+                    <span class="time-val">${h}</span>
+                    <span class="time-label">SAAT</span>
+                </div>
+                <span class="time-sep">:</span>
+                <div class="time-box">
+                    <span class="time-val">${m}</span>
+                    <span class="time-label">DAK</span>
+                </div>
+            `;
+        }
+
+        setInterval(updateCountdown, 1000);
+        updateCountdown();
+
+        // =================================================================
+        // 3. TAKVİM MOTORU
+        // =================================================================
+        const monthYearText = document.getElementById("month-year");
+        const calendarDays = document.getElementById("calendar-days");
+        let currentDate = new Date(); 
+
+        function renderCalendar() {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+
+            const monthNames = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
+            monthYearText.innerText = `${monthNames[month]} ${year}`;
+
+            let firstDay = new Date(year, month, 1).getDay();
+            firstDay = firstDay === 0 ? 6 : firstDay - 1; 
+
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            let daysHtml = "";
+
+            for (let i = 0; i < firstDay; i++) {
+                daysHtml += `<div class="day-box empty"></div>`;
+            }
+
+            const today = new Date();
+            for (let i = 1; i <= daysInMonth; i++) {
+                if (i === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
+                    daysHtml += `<div class="day-box today">${i}</div>`;
+                } else {
+                    daysHtml += `<div class="day-box">${i}</div>`;
+                }
+            }
+            calendarDays.innerHTML = daysHtml;
+        }
+        renderCalendar();
+
+        // =================================================================
+        // 4. DİNAMİK DERS VE MENÜ MOTORU
+        // =================================================================
+        let currentExam = "tyt"; 
+        let currentTrack = "sayisal"; 
+
+        const lessonData = {
+            tyt: [
+                { name: "Türkçe", icon: "fa-book-open" },
+                { name: "Sosyal Bilimler", icon: "fa-globe" },
+                { name: "Temel Matematik", icon: "fa-calculator" },
+                { name: "Fen Bilimleri", icon: "fa-flask" }
+            ],
+            ayt: {
+                sayisal: [
+                    { name: "Matematik", icon: "fa-calculator" },
+                    { name: "Fizik", icon: "fa-atom" },
+                    { name: "Kimya", icon: "fa-vial" },
+                    { name: "Biyoloji", icon: "fa-dna" }
+                ],
+                ea: [
+                    { name: "Matematik", icon: "fa-calculator" },
+                    { name: "Edebiyat", icon: "fa-book" },
+                    { name: "Tarih (1)", icon: "fa-landmark" },
+                    { name: "Coğrafya (1)", icon: "fa-earth-europe" }
+                ],
+                sozel: [
+                    { name: "Edebiyat", icon: "fa-book" },
+                    { name: "Tarih (1-2)", icon: "fa-landmark" },
+                    { name: "Coğrafya (1-2)", icon: "fa-earth-europe" },
+                    { name: "Felsefe Grubu", icon: "fa-brain" },
+                    { name: "Din Kültürü", icon: "fa-mosque" }
+                ],
+                dil: ["İngilizce", "Almanca", "Arapça", "Fransızca", "Rusça"]
+            }
+        };
+
+        const subjectContainer = document.getElementById("subject-container");
+
+        function renderLessons() {
+            subjectContainer.innerHTML = ""; 
+            if (currentExam === "tyt") {
+                lessonData.tyt.forEach(lesson => {
+                    subjectContainer.innerHTML += `
+                        <div class="lesson-column">
+                            <i class="fa-solid ${lesson.icon} lesson-icon"></i>
+                            <span class="lesson-name">${lesson.name}</span>
+                        </div>
+                    `;
+                });
+            } else {
+                if (currentTrack === "dil") {
+                    let sidebarHtml = '<div class="lang-sidebar">';
+                    lessonData.ayt.dil.forEach((lang, index) => {
+                        let activeClass = index === 0 ? "active" : "";
+                        sidebarHtml += `<button class="lang-btn ${activeClass}" onclick="window.selectLanguage('${lang}', this)">${lang}</button>`;
+                    });
+                    sidebarHtml += '</div>';
+                    
+                    let contentHtml = `
+                        <div class="lang-content">
+                            <div class="lesson-column" style="width: 100%; height: 100%; cursor: default; transform: none; box-shadow: none;">
+                                <i class="fa-solid fa-language lesson-icon" style="font-size: 30px; margin-bottom: 10px;"></i>
+                                <span class="lesson-name" id="selected-lang-title" style="font-size: 16px;">${lessonData.ayt.dil[0]}</span>
+                            </div>
+                        </div>
+                    `;
+                    subjectContainer.innerHTML = `<div class="lang-container">${sidebarHtml}${contentHtml}</div>`;
+                } else {
+                    lessonData.ayt[currentTrack].forEach(lesson => {
+                        subjectContainer.innerHTML += `
+                            <div class="lesson-column">
+                                <i class="fa-solid ${lesson.icon} lesson-icon"></i>
+                                <span class="lesson-name">${lesson.name}</span>
+                            </div>
+                        `;
+                    });
+                }
+            }
+        }
+
+        window.selectLanguage = function(langName, btnElement) {
+            document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
+            btnElement.classList.add('active');
+            document.getElementById('selected-lang-title').innerText = langName;
+        }
+
+        const customSelects = document.querySelectorAll(".custom-select");
+        customSelects.forEach(select => {
+            const selectedBtn = select.querySelector(".select-selected");
+            const itemsList = select.querySelector(".select-items");
+            const options = select.querySelectorAll(".select-items div");
+
+            selectedBtn.addEventListener("click", function(e) {
+                e.stopPropagation(); 
+                closeAllSelect(this); 
+                itemsList.classList.toggle("select-hide");
+                selectedBtn.classList.toggle("select-arrow-active");
+            });
+
+            options.forEach(option => {
+                option.addEventListener("click", function(e) {
+                    e.stopPropagation();
+                    const val = this.getAttribute("data-val");
+                    const text = this.innerText;
+                    
+                    selectedBtn.innerHTML = text + ' <i class="fa-solid fa-chevron-down" style="font-size:10px;"></i>';
+                    
+                    if (select.id === "examTypeSelect") currentExam = val;
+                    if (select.id === "trackSelect") currentTrack = val;
+
+                    renderLessons();
+                    itemsList.classList.add("select-hide");
+                    selectedBtn.classList.remove("select-arrow-active");
+                });
+            });
+        });
+
+        function closeAllSelect(exceptThisBtn) {
+            const items = document.querySelectorAll(".select-items");
+            const btns = document.querySelectorAll(".select-selected");
+            for (let i = 0; i < items.length; i++) {
+                if (btns[i] !== exceptThisBtn) {
+                    items[i].classList.add("select-hide");
+                    btns[i].classList.remove("select-arrow-active");
+                }
+            }
+        }
+        document.addEventListener("click", closeAllSelect);
+        renderLessons();
+
+        // =================================================================
+        // 5. YENİ MİMARİ: ALT KOLEKSİYONLU FIREBASE NOT MOTORU
+        // =================================================================
+        const pageLoader = document.getElementById('pageLoader');
+        function hideLoader() {
+            if (pageLoader) {
+                pageLoader.classList.add('hidden');
+                setTimeout(() => pageLoader.style.display = 'none', 500); 
+            }
+        }
+
+        const noteModal = document.getElementById('noteModal');
+        const openNoteModalBtn = document.getElementById('openNoteModalBtn');
+        const closeNoteModalBtn = document.getElementById('closeNoteModalBtn');
+        const cancelNoteBtn = document.getElementById('cancelNoteBtn');
+        const saveNoteBtn = document.getElementById('saveNoteBtn');
+        
+        const noteTitleInput = document.getElementById('noteTitle');
+        const noteContentInput = document.getElementById('noteContent');
+        const noteErrorMsg = document.getElementById('noteErrorMsg');
+        const noteMediaInput = document.getElementById('noteMedia');
+        const notesList = document.getElementById('notes-list');
+
+        let selectedMediaFiles = []; 
+        let currentUserUid = null; 
+        let savedNotes = []; 
+        let savedExams = []; // Denemelerin tutulacağı dizi
+        
+        let editingNoteId = null; 
+        let currentViewingNote = null; 
+        let originalEditState = null; // YENİ: Değişiklik Dedektifi İçin İlk Halin Fotoğrafı
+
+        // --- FIREBASE: KULLANICI GİRİŞ DURUMUNU DİNLE ---
+        onAuthStateChanged(auth, async (user) => {
+            const minLoadTime = new Promise(resolve => setTimeout(resolve, 1500)); 
+            if (user) {
+                currentUserUid = user.uid;
+                try {
+                    const userDocRef = doc(db, "users", user.uid);
+                    const docSnap = await getDoc(userDocRef);
+                    if (docSnap.exists() && docSnap.data().notes && docSnap.data().notes.length > 0) {
+                        const oldNotes = docSnap.data().notes;
+                        for (let oldNote of oldNotes) {
+                            const newNoteRef = doc(db, "users", user.uid, "userNotes", oldNote.id.toString());
+                            await setDoc(newNoteRef, oldNote);
+                        }
+                        await setDoc(userDocRef, { notes: [] }, { merge: true });
+                    }
+
+                    const notesCollectionRef = collection(db, "users", user.uid, "userNotes");
+                    const querySnapshot = await getDocs(notesCollectionRef);
+                    
+                    savedNotes = [];
+                    querySnapshot.forEach((docSnap) => {
+                        savedNotes.push(docSnap.data());
+                    });
+
+                    savedNotes.sort((a, b) => b.id - a.id);
+                    renderNotesToScreen(); 
+                    // Denemeleri Firebase'den Çek
+                    const examsCollectionRef = collection(db, "users", user.uid, "userExams");
+                    const examsSnapshot = await getDocs(examsCollectionRef);
+                    savedExams = [];
+                    examsSnapshot.forEach((docSnap) => savedExams.push(docSnap.data()));
+                    renderExamsToScreen(); // Ekranı güncelle
+                } catch (error) {
+                    console.error("Veri çekilirken hata oluştu: ", error);
+                }
+                await minLoadTime;
+                hideLoader();
+            } else {
+                currentUserUid = null;
+                savedNotes = [];
+                notesList.innerHTML = '<div class="placeholder-text">Notlarınızı görmek için giriş yapın...</div>';
+                await minLoadTime;
+                hideLoader();
+            }
+        });
+
+        function formatDateToTurkish(dateString) {
+            if (!dateString) return "";
+            const parts = dateString.split('-');
+            if (parts.length === 3) return `${parts[2]}.${parts[1]}.${parts[0]}`;
+            return dateString;
+        }
+
+        // --- EKRANA KARTLARI ÇİZME ---
+        function renderNotesToScreen() {
+            notesList.innerHTML = ''; 
+            if (savedNotes.length === 0) {
+                notesList.innerHTML = '<div class="placeholder-text">Henüz not eklemedin...</div>';
+                return;
+            }
+            savedNotes.forEach(note => {
+                let dateHtml = '';
+                
+                // YENİ: Ana ekranda yerden tasarruf etmek için sadece tek bir tarih gösteriyoruz
+                // Öncelik başlangıç tarihi, o yoksa bitiş tarihini gösterir.
+                if (note.startDate || note.endDate) {
+                    let dateText = note.startDate ? formatDateToTurkish(note.startDate) : formatDateToTurkish(note.endDate);
+                    
+                    dateHtml = `
+                        <div class="note-card-date">
+                            <i class="fa-regular fa-calendar-days"></i>
+                            <span>${dateText}</span>
+                        </div>
+                    `;
+                }
+
+                // Medya Sayacı Rozeti (Korundu)
+                let mediaHtml = '';
+                if (note.media && note.media.length > 0) {
+                    mediaHtml = `
+                        <div class="note-card-media-count" style="display: flex; align-items: center; gap: 5px; font-size: 10px; font-weight: 700; color: #17a2b8; background-color: #e0f7fa; padding: 4px 8px; border-radius: 6px; white-space: nowrap; flex-shrink: 0;">
+                            <i class="fa-solid fa-paperclip"></i>
+                            <span>${note.media.length}</span>
+                        </div>
+                    `;
+                }
+
+                const cardHtml = `
+                    <div class="note-card" onclick="window.viewNoteDetails(${note.id})">
+                        <div class="note-card-left" style="overflow: hidden; flex: 1; padding-right: 10px;">
+                            <div class="note-card-icon"><i class="fa-solid fa-note-sticky"></i></div>
+                            <span class="note-card-title">${note.title}</span>
+                        </div>
+                        <div style="display: flex; gap: 5px; align-items: center; flex-shrink: 0;">
+                            ${mediaHtml}
+                            ${dateHtml}
+                        </div>
+                    </div>
+                `;
+                notesList.insertAdjacentHTML('beforeend', cardHtml); 
+            });
+        }
+
+        // --- PENCERE (MODAL) AÇMA/KAPATMA İŞLEMLERİ ---
+        openNoteModalBtn.addEventListener('click', () => {
+            if(!currentUserUid) {
+                alert("Not eklemek için lütfen giriş yapın!");
+                return;
+            }
+            editingNoteId = null; 
+            originalEditState = null; // Yeni eklemede takip yok
+            document.querySelector('#noteModal .modal-header h3').innerText = "Yeni Not Ekle";
+            noteModal.style.display = 'flex';
+        });
+
+        function closeModalAndClear() {
+            noteModal.style.display = 'none';
+            
+            // Formu temizle
+            noteTitleInput.value = '';
+            noteContentInput.value = '';
+            document.getElementById('noteStartDate').value = '';
+            document.getElementById('noteEndDate').value = '';
+            noteErrorMsg.style.display = 'none';
+            noteMediaInput.value = ''; 
+            selectedMediaFiles = []; 
+            
+            // YENİ: ID'yi sıfırlamadan önce hafızaya alıyoruz ki hangi nota döneceğimizi bilelim
+            const savedEditId = editingNoteId; 
+            
+            // Sistemi yeni ekleme moduna hazırla
+            editingNoteId = null;
+            originalEditState = null;
+            updateMediaUI(); 
+
+            // YENİ: Eğer bir not düzenleniyorken çıkıldıysa (kaydederek veya iptal ederek fark etmez),
+            // o notun detay (okuma) ekranını anında tekrar aç!
+            if (savedEditId) {
+                window.viewNoteDetails(savedEditId);
+            }
+        }
+
+        // YENİ: DEĞİŞİKLİK DEDEKTİFİ
+        function hasFormChanged() {
+            if (!editingNoteId || !originalEditState) return false;
+            
+            const currentTitle = noteTitleInput.value.trim();
+            const currentContent = noteContentInput.value.trim();
+            const currentStart = document.getElementById('noteStartDate').value;
+            const currentEnd = document.getElementById('noteEndDate').value;
+            const currentMediaCount = selectedMediaFiles.length;
+            const currentMediaNames = selectedMediaFiles.map(m => m.customName).join(',');
+
+            if (currentTitle !== originalEditState.title) return true;
+            if (currentContent !== originalEditState.content) return true;
+            if (currentStart !== originalEditState.startDate) return true;
+            if (currentEnd !== originalEditState.endDate) return true;
+            if (currentMediaCount !== originalEditState.mediaCount) return true;
+            if (currentMediaNames !== originalEditState.mediaNames) return true;
+            
+            return false;
+        }
+
+        // YENİ: GÜVENLİ ÇIKIŞ MOTORU
+        function attemptCloseModal() {
+            if (editingNoteId && hasFormChanged()) {
+                document.getElementById('cancelConfirmModal').style.display = 'flex';
+            } else {
+                closeModalAndClear(); // Değişiklik yoksa sormadan anında kapat
+            }
+        }
+
+        closeNoteModalBtn.addEventListener('click', attemptCloseModal);
+        cancelNoteBtn.addEventListener('click', attemptCloseModal);
+        window.addEventListener('click', (e) => { if (e.target === noteModal) attemptCloseModal(); });
+
+
+        // --- AKILLI MEDYA MOTORU ---
+        noteMediaInput.addEventListener('change', function() {
+            Array.from(this.files).forEach(file => {
+                if(selectedMediaFiles.some(item => item.customName === file.name)) return; 
+
+                const isImage = file.type.startsWith('image/');
+                const isPdf = file.type === 'application/pdf';
+
+                if (!isImage && !isPdf) {
+                    alert(`"${file.name}" desteklenmiyor. Lütfen sadece fotoğraf veya PDF yükleyin.`);
+                    return;
+                }
+
+                if (isPdf && file.size > 700 * 1024) {
+                    alert(`"${file.name}" çok büyük! Lütfen 700KB altı PDF'ler yüklemeye çalışın.`);
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    if (isPdf) {
+                        selectedMediaFiles.push({ customName: file.name, data: e.target.result, type: file.type });
+                        updateMediaUI();
+                    } else if (isImage) {
+                        const img = new Image();
+                        img.src = e.target.result;
+                        img.onload = function() {
+                            const canvas = document.createElement('canvas');
+                            let width = img.width;
+                            let height = img.height;
+                            const MAX_DIM = 800; 
+
+                            if (width > height && width > MAX_DIM) {
+                                height = Math.round(height * (MAX_DIM / width));
+                                width = MAX_DIM;
+                            } else if (height > MAX_DIM) {
+                                width = Math.round(width * (MAX_DIM / height));
+                                height = MAX_DIM;
+                            }
+
+                            canvas.width = width;
+                            canvas.height = height;
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0, width, height);
+
+                            const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.5);
+                            selectedMediaFiles.push({ customName: file.name, data: compressedDataUrl, type: 'image/jpeg' });
+                            updateMediaUI();
+                        };
+                    }
+                };
+                reader.readAsDataURL(file);
+            });
+        });
+
+        function updateMediaUI() {
+            const noMediaText = document.getElementById('noMediaText');
+            const imageCategory = document.getElementById('imageCategory');
+            const documentCategory = document.getElementById('documentCategory');
+            const imageItems = document.getElementById('imageItems');
+            const documentItems = document.getElementById('documentItems');
+
+            imageItems.innerHTML = ''; documentItems.innerHTML = '';
+            let imageCount = 0; let docCount = 0;
+
+            if (selectedMediaFiles.length === 0) {
+                noMediaText.style.display = 'block';
+                imageCategory.style.display = 'none';
+                documentCategory.style.display = 'none';
+                return;
+            }
+
+            noMediaText.style.display = 'none';
+
+            selectedMediaFiles.forEach((item, index) => {
+                const displayName = item.customName;
+                const isImage = item.type.startsWith('image/');
+                let iconClass = 'fa-file';
+                
+                if(isImage) { iconClass = 'fa-image'; imageCount++; }
+                else if(item.type === 'application/pdf') { iconClass = 'fa-file-pdf'; docCount++; }
+                else { docCount++; } 
+
+                const itemHtml = `
+                    <div class="preview-item" onclick="window.openMediaPreview(${index}, false)" data-custom-title="Önizlemek için tıkla">
+                        <i class="fa-solid ${iconClass}"></i> 
+                        <span style="max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${displayName}</span>
+                        <div class="media-actions">
+                            <div class="edit-media-btn" onclick="event.stopPropagation(); window.renameMedia(${index})" data-custom-title="Adını Değiştir">
+                                <i class="fa-solid fa-pen"></i>
+                            </div>
+                            <div class="remove-media-btn" onclick="event.stopPropagation(); window.removeMedia(${index})" data-custom-title="Kaldır">
+                                <i class="fa-solid fa-xmark"></i>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                if (isImage) imageItems.innerHTML += itemHtml;
+                else documentItems.innerHTML += itemHtml;
+            });
+
+            imageCategory.style.display = imageCount > 0 ? 'flex' : 'none';
+            documentCategory.style.display = docCount > 0 ? 'flex' : 'none';
+        }
+
+        window.removeMedia = function(index) {
+            selectedMediaFiles.splice(index, 1);
+            updateMediaUI();
+        }
+
+        // --- İSİM DEĞİŞTİRME PENCERESİ MOTORU ---
+        const renameMediaModal = document.getElementById('renameMediaModal');
+        const newMediaNameInput = document.getElementById('newMediaNameInput');
+        let currentEditingMediaIndex = -1; 
+
+        window.renameMedia = function(index) {
+            currentEditingMediaIndex = index;
+            newMediaNameInput.value = selectedMediaFiles[index].customName;
+            renameMediaModal.style.display = 'flex';
+            setTimeout(() => newMediaNameInput.focus(), 100); 
+        };
+
+        function closeRenameModal() {
+            renameMediaModal.style.display = 'none';
+            currentEditingMediaIndex = -1;
+            newMediaNameInput.style.borderColor = '#dce4ec'; 
+        }
+
+        document.getElementById('closeRenameModalBtn').addEventListener('click', closeRenameModal);
+        document.getElementById('cancelRenameBtn').addEventListener('click', closeRenameModal);
+        renameMediaModal.addEventListener('click', (e) => { if (e.target === renameMediaModal) closeRenameModal(); });
+
+        document.getElementById('saveRenameBtn').addEventListener('click', () => {
+            const newName = newMediaNameInput.value.trim();
+            if (newName !== "" && currentEditingMediaIndex !== -1) {
+                selectedMediaFiles[currentEditingMediaIndex].customName = newName;
+                updateMediaUI(); 
+                closeRenameModal(); 
+            } else {
+                newMediaNameInput.style.borderColor = '#d9534f';
+                setTimeout(() => newMediaNameInput.style.borderColor = '#dce4ec', 2000);
+            }
+        });
+
+        // --- NOT GÖRÜNTÜLEME VE DÜZENLEME MOTORU ---
+        const viewNoteModal = document.getElementById('viewNoteModal');
+        const editNoteBtn = document.getElementById('editNoteBtn');
+
+        window.viewNoteDetails = function(noteId) {
+            const note = savedNotes.find(n => n.id === noteId);
+            if (!note) return;
+            currentViewingNote = note;
+
+            const dateEl = document.getElementById('viewNoteDate');
+            if (note.startDate || note.endDate) {
+                let dateText = '';
+                if (note.startDate && note.endDate) dateText = `${formatDateToTurkish(note.startDate)} - ${formatDateToTurkish(note.endDate)}`;
+                else if (note.startDate) dateText = formatDateToTurkish(note.startDate);
+                else if (note.endDate) dateText = formatDateToTurkish(note.endDate);
+                
+                dateEl.innerHTML = `<i class="fa-regular fa-calendar-days"></i> ${dateText}`;
+                dateEl.style.display = 'inline-flex';
+            } else {
+                dateEl.style.display = 'none';
+            }
+
+            document.getElementById('viewNoteTitle').innerText = note.title;
+            document.getElementById('viewNoteContent').innerText = note.content;
+
+            const mediaSection = document.getElementById('viewNoteMediaSection');
+            const mediaList = document.getElementById('viewNoteMediaList');
+            mediaList.innerHTML = '';
+
+            if (note.media && note.media.length > 0) {
+                mediaSection.style.display = 'block';
+                note.media.forEach((mediaItem, index) => {
+                    const isImage = mediaItem.type.startsWith('image/');
+                    const iconClass = isImage ? 'fa-image' : 'fa-file-pdf';
+                    
+                    mediaList.innerHTML += `
+                        <div class="view-media-item" onclick="window.openMediaPreview(${index}, true)" style="cursor:pointer; background:#f0f8ff; transition:all 0.2s;">
+                            <i class="fa-solid ${iconClass}" style="font-size: 16px;"></i>
+                            <span>${mediaItem.customName}</span>
+                        </div>
+                    `;
+                });
+            } else {
+                mediaSection.style.display = 'none';
+            }
+
+            viewNoteModal.style.display = 'flex';
+        };
+
+        function closeViewModal() {
+            viewNoteModal.style.display = 'none';
+            currentViewingNote = null;
+        }
+
+        document.getElementById('closeViewNoteModalBtn').addEventListener('click', closeViewModal);
+        document.getElementById('closeViewNoteBtn').addEventListener('click', closeViewModal);
+        window.addEventListener('click', (e) => { if (e.target === viewNoteModal) closeViewModal(); });
+
+        // DÜZENLE BUTONUNA TIKLANINCA İLK HALİN FOTOĞRAFINI ÇEK
+        editNoteBtn.addEventListener('click', () => {
+            if (!currentViewingNote) return;
+            
+            editingNoteId = currentViewingNote.id; 
+            
+            noteTitleInput.value = currentViewingNote.title || '';
+            noteContentInput.value = currentViewingNote.content || '';
+            document.getElementById('noteStartDate').value = currentViewingNote.startDate || '';
+            document.getElementById('noteEndDate').value = currentViewingNote.endDate || '';
+            
+            selectedMediaFiles = currentViewingNote.media ? JSON.parse(JSON.stringify(currentViewingNote.media)) : [];
+            updateMediaUI();
+            
+            // YENİ: Değişiklik tespiti için referans noktası
+            originalEditState = {
+                title: noteTitleInput.value.trim(),
+                content: noteContentInput.value.trim(),
+                startDate: document.getElementById('noteStartDate').value,
+                endDate: document.getElementById('noteEndDate').value,
+                mediaCount: selectedMediaFiles.length,
+                mediaNames: selectedMediaFiles.map(m => m.customName).join(',')
+            };
+            
+            closeViewModal();
+            document.querySelector('#noteModal .modal-header h3').innerText = "Notu Düzenle";
+            noteModal.style.display = 'flex';
+        });
+
+        // --- MEDYA ÖNİZLEME (FULL EKRAN) MOTORU ---
+        const mediaPreviewModal = document.getElementById('mediaPreviewModal');
+        const previewContentContainer = document.getElementById('previewContentContainer');
+        
+        window.openMediaPreview = function(index, isViewMode = false) {
+            let mediaItem;
+            if (isViewMode && currentViewingNote) {
+                mediaItem = currentViewingNote.media[index];
+            } else {
+                mediaItem = selectedMediaFiles[index];
+            }
+
+            if (!mediaItem) return;
+            const src = mediaItem.data; 
+            
+            previewContentContainer.innerHTML = ''; 
+            
+            if (mediaItem.type.startsWith('image/')) {
+                previewContentContainer.innerHTML = `<img src="${src}" alt="Önizleme">`;
+            } else if (mediaItem.type === 'application/pdf') {
+                previewContentContainer.innerHTML = `<iframe src="${src}"></iframe>`;
+            } else {
+                previewContentContainer.innerHTML = `
+                    <div style="background: white; padding: 30px; border-radius: 10px; text-align: center;">
+                        <i class="fa-solid fa-file-circle-exclamation" style="font-size: 50px; color: #ffc107; margin-bottom: 15px;"></i>
+                        <h3 style="color: #333; margin-bottom: 10px;">Önizleme Desteklenmiyor</h3>
+                    </div>
+                `;
+            }
+            mediaPreviewModal.style.display = 'flex';
+        };
+
+        function closeMediaPreview() {
+            mediaPreviewModal.style.display = 'none';
+            previewContentContainer.innerHTML = ''; 
+        }
+
+        document.getElementById('closeMediaPreviewBtn').addEventListener('click', closeMediaPreview);
+        mediaPreviewModal.addEventListener('click', (e) => { if (e.target === mediaPreviewModal) closeMediaPreview(); });
+
+
+        // --- KAYDETME TETİKLEYİCİSİ (ONAY PENCERESİ BAĞLANTISI) ---
+        saveNoteBtn.addEventListener('click', async () => {
+            if (!currentUserUid) {
+                alert("Lütfen giriş yapın!");
+                return;
+            }
+
+            const titleVal = noteTitleInput.value.trim();
+            const contentVal = noteContentInput.value.trim();
+            const startDateVal = document.getElementById('noteStartDate').value;
+            const endDateVal = document.getElementById('noteEndDate').value;
+
+            // 1. Boş Alan Kontrolü
+            if (titleVal.length === 0 || contentVal.length === 0) {
+                noteErrorMsg.style.display = 'block';
+                noteErrorMsg.innerText = "Lütfen zorunlu alanları (Başlık ve Açıklama) doldurun!";
+                if(titleVal.length === 0) noteTitleInput.style.borderColor = '#d9534f';
+                if(contentVal.length === 0) noteContentInput.style.borderColor = '#d9534f';
+                setTimeout(() => { noteTitleInput.style.borderColor = '#dce4ec'; noteContentInput.style.borderColor = '#dce4ec'; }, 3000);
+                return; 
+            }
+
+            // YENİ 2. Tarih Mantığı Kontrolü
+            if (startDateVal && endDateVal) {
+                if (new Date(startDateVal) > new Date(endDateVal)) {
+                    noteErrorMsg.style.display = 'block';
+                    noteErrorMsg.innerText = "Başlangıç tarihi, bitiş tarihinden sonra olamaz!";
+                    
+                    // Gözden kaçmasın diye tarih kutularını kırmızı yapıyoruz
+                    document.getElementById('noteStartDate').style.color = '#d9534f';
+                    document.getElementById('noteEndDate').style.color = '#d9534f';
+                    setTimeout(() => { 
+                        document.getElementById('noteStartDate').style.color = '#333'; 
+                        document.getElementById('noteEndDate').style.color = '#333'; 
+                    }, 3000);
+                    return; // Hata varsa kaydetmeyi anında durdur
+                }
+            }
+
+            noteErrorMsg.style.display = 'none';
+
+            // EĞER DÜZENLEME MODUNDAYSAK VE DEĞİŞİKLİK YOKSA SESSİZCE ÇIK
+            if (editingNoteId) {
+                if (!hasFormChanged()) {
+                    closeModalAndClear();
+                    return;
+                }
+                // DEĞİŞİKLİK VARSA "EMİN MİSİN?" DİYE SOR
+                document.getElementById('saveConfirmModal').style.display = 'flex';
+            } else {
+                // YENİ NOT EKLENİYORSA SORMADAN DİREKT KAYDET
+                executeSaveNote();
+            }
+        });
+
+        // --- ASIL KAYDETME İŞLEMİ (Bildirim Baloncuğu Entegreli) ---
+        async function executeSaveNote() {
+            const titleVal = noteTitleInput.value.trim();
+            const contentVal = noteContentInput.value.trim();
+            const startDateVal = document.getElementById('noteStartDate').value;
+            const endDateVal = document.getElementById('noteEndDate').value;
+
+            const newNote = {
+                id: editingNoteId ? editingNoteId : Date.now(), 
+                title: titleVal,
+                content: contentVal,
+                startDate: startDateVal,
+                endDate: endDateVal,
+                media: selectedMediaFiles 
+            };
+
+            let updatedNotes = [...savedNotes];
+
+            if (editingNoteId) {
+                const noteIndex = updatedNotes.findIndex(n => n.id === editingNoteId);
+                if (noteIndex !== -1) updatedNotes[noteIndex] = newNote;
+            } else {
+                updatedNotes.unshift(newNote); 
+            }
+
+            // BALONCUĞU GÖSTER
+            const toast = document.getElementById('actionToast');
+            const toastText = document.getElementById('toastText');
+            toastText.innerText = "Kaydediliyor...";
+            toast.classList.add('show');
+            
+            // Butonu pasif yap ama yazısını bozma
+            saveNoteBtn.disabled = true;
+            saveNoteBtn.style.opacity = "0.7";
+
+            try {
+                const noteDocRef = doc(db, "users", currentUserUid, "userNotes", newNote.id.toString());
+                await setDoc(noteDocRef, newNote);
+
+                savedNotes = updatedNotes;
+                renderNotesToScreen();
+                
+                // Başarı durumunda baloncuğu güncelle
+                toastText.innerText = "Başarıyla Kaydedildi!";
+                toast.querySelector('.toast-spinner').style.display = 'none'; // Spinner'ı gizle
+                
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                    closeModalAndClear(); 
+                    // Bir sonraki kullanım için spinner'ı geri getir
+                    setTimeout(() => { toast.querySelector('.toast-spinner').style.display = 'block'; }, 500);
+                }, 1500);
+
+            } catch (error) {
+                console.error("Not kaydedilirken hata: ", error);
+                toastText.innerText = "Hata Oluştu!";
+                setTimeout(() => toast.classList.remove('show'), 3000);
+                alert("Sistem Hatası: Medya boyutu çok büyük olabilir.");
+            } finally {
+                saveNoteBtn.disabled = false;
+                saveNoteBtn.style.opacity = "1";
+            }
+        }
+
+        // --- ONAY PENCERESİ (CONFIRM MODAL) BUTON DİNLEYİCİLERİ ---
+        
+        // KAYDET ONAYI BUTONLARI
+        document.getElementById('yesSaveBtn').addEventListener('click', () => {
+            document.getElementById('saveConfirmModal').style.display = 'none';
+            executeSaveNote();
+        });
+        document.getElementById('noSaveBtn').addEventListener('click', () => {
+            document.getElementById('saveConfirmModal').style.display = 'none';
+        });
+        document.getElementById('saveConfirmModal').addEventListener('click', (e) => {
+            if(e.target === document.getElementById('saveConfirmModal')) document.getElementById('saveConfirmModal').style.display = 'none';
+        });
+
+        // ÇIKIŞ (İPTAL) ONAYI BUTONLARI
+        document.getElementById('yesCancelBtn').addEventListener('click', () => {
+            document.getElementById('cancelConfirmModal').style.display = 'none';
+            closeModalAndClear();
+        });
+        document.getElementById('noCancelBtn').addEventListener('click', () => {
+            document.getElementById('cancelConfirmModal').style.display = 'none';
+        });
+        document.getElementById('cancelConfirmModal').addEventListener('click', (e) => {
+            if(e.target === document.getElementById('cancelConfirmModal')) document.getElementById('cancelConfirmModal').style.display = 'none';
+        });
+
+        // --- ONAY PENCERESİ (CONFIRM MODAL) BUTON DİNLEYİCİLERİ ---
+        
+        // 1. KAYDET ONAYI BUTONLARI
+        const yesSaveBtn = document.getElementById('yesSaveBtn');
+        if (yesSaveBtn) {
+            yesSaveBtn.addEventListener('click', () => {
+                document.getElementById('saveConfirmModal').style.display = 'none';
+                executeSaveNote(); // Onay verildi, asıl kaydetme fonksiyonunu (ve baloncuğu) çalıştır
+            });
+        }
+        
+        const noSaveBtn = document.getElementById('noSaveBtn');
+        if (noSaveBtn) {
+            noSaveBtn.addEventListener('click', () => {
+                document.getElementById('saveConfirmModal').style.display = 'none';
+            });
+        }
+
+        // 2. ÇIKIŞ (İPTAL) ONAYI BUTONLARI
+        const yesCancelBtn = document.getElementById('yesCancelBtn');
+        if (yesCancelBtn) {
+            yesCancelBtn.addEventListener('click', () => {
+                document.getElementById('cancelConfirmModal').style.display = 'none';
+                closeModalAndClear(); // Bu fonksiyon artık bizi direkt detay ekranına döndürecek!
+            });
+        }
+
+        const noCancelBtn = document.getElementById('noCancelBtn');
+        if (noCancelBtn) {
+            noCancelBtn.addEventListener('click', () => {
+                document.getElementById('cancelConfirmModal').style.display = 'none';
+            });
+        }
+
+        // =================================================================
+        // --- DENEME EKLEME MOTORU (CANLI NET VE SINIR KORUMASI) ---
+        // =================================================================
+        const examModal = document.getElementById('examModal');
+        const openExamModalBtn = document.getElementById('openExamModalBtn');
+        const closeExamModalBtn = document.getElementById('closeExamModalBtn');
+        const cancelExamBtn = document.getElementById('cancelExamBtn');
+        const aytTrackSelect = document.getElementById('aytTrackSelect');
+        const totalNetValue = document.getElementById('totalNetValue');
+        const examErrorMsg = document.getElementById('examErrorMsg');
+
+        // Derslerin Soru Sınırları Veritabanı
+        const subjectLimits = {
+            "Türkçe": 40, "Sosyal Bilimler": 20, "Temel Matematik": 40, "Fen Bilimleri": 20,
+            "Matematik": 40, "Fizik": 14, "Kimya": 13, "Biyoloji": 13,
+            "Türk Dili ve Edebiyatı": 24, "Tarih-1": 10, "Coğrafya-1": 6,
+            "Tarih-2": 11, "Coğrafya-2": 11, "Felsefe Grubu": 12, "Din Kültürü": 6,
+            "Yabancı Dil": 80
+        };
+
+        const examSubjectsData = {
+            tyt: ["Türkçe", "Sosyal Bilimler", "Temel Matematik", "Fen Bilimleri"],
+            ayt: {
+                sayisal: ["Matematik", "Fizik", "Kimya", "Biyoloji"],
+                ea: ["Matematik", "Türk Dili ve Edebiyatı", "Tarih-1", "Coğrafya-1"],
+                sozel: ["Türk Dili ve Edebiyatı", "Tarih-1", "Coğrafya-1", "Tarih-2", "Coğrafya-2", "Felsefe Grubu", "Din Kültürü"],
+                dil: ["Yabancı Dil"]
+            }
+        };
+
+        // Canlı Net Hesaplama Fonksiyonu
+        function calculateTotalNet() {
+            const activeTab = document.querySelector('.exam-tab-btn.active').getAttribute('data-target');
+            const container = document.getElementById(activeTab === 'tyt-section' ? 'tyt-subjects-container' : 'ayt-subjects-container');
+            
+            let totalNet = 0;
+            const rows = container.querySelectorAll('.subject-input-row');
+            
+            rows.forEach(row => {
+                const d = parseInt(row.querySelector('.correct-input').value) || 0;
+                const y = parseInt(row.querySelector('.incorrect-input').value) || 0;
+                totalNet += (d - (y * 0.25)); // 1 Doğru = +1 Net, 1 Yanlış = -0.25 Net
+            });
+
+            totalNetValue.innerText = totalNet.toFixed(2); // Virgülden sonra 2 hane gösterir
+        }
+
+        // Derslerin HTML Satırlarını Üreten Fonksiyon (Limitlerle Birlikte)
+        function generateSubjectInputs(subjects, containerId) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            
+            subjects.forEach(subject => {
+                const limit = subjectLimits[subject];
+                container.innerHTML += `
+                    <div class="subject-input-row" data-limit="${limit}" data-subject="${subject}">
+                        <div style="display:flex; flex-direction:column; flex:1;">
+                            <span class="subject-name">${subject}</span>
+                            <span style="font-size:10px; color:#888; margin-top:2px;">(Max: ${limit} Soru)</span>
+                        </div>
+                        <div class="dyb-inputs">
+                            <div class="dyb-box">
+                                <label>D</label>
+                                <input type="number" min="0" max="${limit}" placeholder="0" class="dyb-input correct-input">
+                            </div>
+                            <div class="dyb-box">
+                                <label>Y</label>
+                                <input type="number" min="0" max="${limit}" placeholder="0" class="dyb-input incorrect-input">
+                            </div>
+                            <div class="dyb-box">
+                                <label>B</label>
+                                <input type="number" min="0" max="${limit}" placeholder="0" class="dyb-input blank-input">
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            // Girdileri Dinleyen Matematik ve Koruma Kalkanı
+            const inputs = container.querySelectorAll('.dyb-input');
+            inputs.forEach(input => {
+                input.addEventListener('input', (e) => {
+                    const row = e.target.closest('.subject-input-row');
+                    const limit = parseInt(row.getAttribute('data-limit'));
+                    const subjectName = row.getAttribute('data-subject');
+                    
+                    let d = parseInt(row.querySelector('.correct-input').value) || 0;
+                    let y = parseInt(row.querySelector('.incorrect-input').value) || 0;
+                    let b = parseInt(row.querySelector('.blank-input').value) || 0;
+                    
+                    // KORUMA KALKANI: Toplam sayı limiti aşarsa?
+                    if ((d + y + b) > limit) {
+                        e.target.value = ""; // Son girilen hatalı rakamı otomatik sil
+                        examErrorMsg.innerText = `${subjectName} için en fazla ${limit} soru girebilirsiniz!`;
+                        examErrorMsg.style.display = 'block';
+                        setTimeout(() => examErrorMsg.style.display = 'none', 3000);
+                    }
+                    
+                    calculateTotalNet(); // Rakam her değiştiğinde neti anında güncelle!
+                });
+            });
+        }
+
+        // Modal Açıldığında Çalışacaklar
+        openExamModalBtn.addEventListener('click', () => {
+            generateSubjectInputs(examSubjectsData.tyt, 'tyt-subjects-container');
+            generateSubjectInputs(examSubjectsData.ayt.sayisal, 'ayt-subjects-container');
+            aytTrackSelect.value = 'sayisal';
+            
+            document.getElementById('examTitleInput').value = '';
+            document.getElementById('examDateInput').value = '';
+            examErrorMsg.style.display = 'none';
+            totalNetValue.innerText = "0.00"; // Neti sıfırla
+            
+            examModal.style.display = 'flex';
+        });
+
+        // Kapatma İşlemleri
+        function closeExamModal() { examModal.style.display = 'none'; }
+        closeExamModalBtn.addEventListener('click', closeExamModal);
+        cancelExamBtn.addEventListener('click', closeExamModal);
+        window.addEventListener('click', (e) => { if (e.target === examModal) closeExamModal(); });
+
+        // SEKMELER ARASI GEÇİŞ (TYT / AYT)
+        const examTabBtns = document.querySelectorAll('.exam-tab-btn');
+        examTabBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                examTabBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                document.querySelectorAll('.exam-section').forEach(sec => sec.style.display = 'none');
+                document.getElementById(btn.getAttribute('data-target')).style.display = 'block';
+                
+                calculateTotalNet(); // Sekme değişince o sekmenin netini hesapla
+            });
+        });
+
+        // AYT ALAN SEÇİMİ DEĞİŞTİĞİNDE DERSLERİ GÜNCELLE
+        aytTrackSelect.addEventListener('change', (e) => {
+            const selectedTrack = e.target.value;
+            generateSubjectInputs(examSubjectsData.ayt[selectedTrack], 'ayt-subjects-container');
+            calculateTotalNet(); // Alan değişince neti sıfırla/hesapla
+        });
+
+        // =================================================================
+        // --- KÜRESEL İPUCU (GLOBAL TOOLTIP) MOTORU ---
+        // =================================================================
+        const tooltipEl = document.createElement('div');
+        tooltipEl.id = 'global-custom-tooltip';
+        document.body.appendChild(tooltipEl);
+
+        document.addEventListener('mouseover', (e) => {
+            const target = e.target.closest('[data-custom-title]');
+            if (target) {
+                tooltipEl.innerText = target.getAttribute('data-custom-title');
+                const rect = target.getBoundingClientRect();
+                
+                // Hedefin tam ortasını hesapla ve elementin üstünde çıkar
+                tooltipEl.style.left = rect.left + (rect.width / 2) + 'px';
+                tooltipEl.style.top = rect.top - tooltipEl.offsetHeight - 8 + 'px'; 
+                tooltipEl.classList.add('show');
+            }
+        });
+
+        document.addEventListener('mouseout', (e) => {
+            if (e.target.closest('[data-custom-title]')) {
+                tooltipEl.classList.remove('show');
+            }
+        });
+
+        // Tıklanıldığında veya sayfa kaydırıldığında ipucu ekranda asılı kalmasın diye anında gizle
+        document.addEventListener('mousedown', () => tooltipEl.classList.remove('show'));
+        document.addEventListener('wheel', () => tooltipEl.classList.remove('show'), {passive: true});
+
+        // =================================================================
+        // --- DENEMELERİ (TYT/AYT) EKRANA ÇİZME MOTORU ---
+        // =================================================================
+        function renderExamsToScreen() {
+            const tytList = document.getElementById('tyt-exam-list');
+            const aytList = document.getElementById('ayt-exam-list');
+            if(!tytList || !aytList) return;
+
+            const sortedExams = [...savedExams].sort((a, b) => new Date(b.date) - new Date(a.date));
+            const tytExams = sortedExams.filter(e => e.type === 'tyt');
+            const aytExams = sortedExams.filter(e => e.type === 'ayt');
+
+            const renderMiniList = (container, examsArr, emptyMsg) => {
+                container.innerHTML = '';
+                if(examsArr.length === 0) {
+                    container.innerHTML = `<div class="placeholder-text" style="font-size:12px; margin-top:5px;">${emptyMsg}</div>`;
+                    return;
+                }
+
+                examsArr.forEach(ex => {
+                    // YENİ: Tıklanabilirlik eklendi ve "Net" yazısı uçuruldu! Sadece sayı var.
+                    container.innerHTML += `
+                        <div class="exam-mini-card" onclick="window.viewExamDetails(${ex.id})" style="cursor: pointer;">
+                            <div class="exam-mini-card-left">
+                                <span class="exam-mini-title" data-custom-title="${ex.title}">${ex.title}</span>
+                                <span class="exam-mini-date"><i class="fa-regular fa-calendar-days"></i> ${formatDateToTurkish(ex.date)}</span>
+                            </div>
+                            <div class="exam-mini-net">${parseFloat(ex.net).toFixed(2)}</div>
+                        </div>
+                    `;
+                });
+            };
+
+            renderMiniList(tytList, tytExams, "Henüz TYT denemesi eklemedin...");
+            renderMiniList(aytList, aytExams, "Henüz AYT denemesi eklemedin...");
+            
+            // GRAFİĞİ ASLA UNUTMA: Liste her yenilendiğinde grafik de güncellenir!
+            if(typeof updateChart === 'function') updateChart();
+        }
+
+        // =================================================================
+        // --- DENEME LİSTELERİ İÇİN YUMUŞAK & YAVAŞ KAYDIRMA MOTORU ---
+        // =================================================================
+        const examMiniLists = document.querySelectorAll('.exam-mini-list');
+        examMiniLists.forEach(list => {
+            list.addEventListener('wheel', (e) => {
+                e.preventDefault(); 
+                list.scrollTop += e.deltaY * 0.25; 
+            }, { passive: false });
+        });
+
+        // =================================================================
+        // --- GELİŞİM GRAFİĞİ (CHART.JS) MOTORU ---
+        // =================================================================
+        let netChartInstance = null;
+        let currentChartType = 'tyt'; 
+
+        function updateChart() {
+            const canvasEl = document.getElementById('netChart');
+            if (!canvasEl) return;
+
+            const filteredExams = savedExams
+                .filter(e => e.type === currentChartType)
+                .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+            const labels = filteredExams.map(e => formatDateToTurkish(e.date));
+            const dataPoints = filteredExams.map(e => parseFloat(e.net));
+            const examTitles = filteredExams.map(e => e.title); // YENİ: Başlıklar dizisi çekildi
+
+            if (netChartInstance) {
+                netChartInstance.destroy();
+            }
+
+            netChartInstance = new Chart(canvasEl, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Net Skoru',
+                        data: dataPoints,
+                        borderColor: currentChartType === 'tyt' ? '#007bff' : '#ffc107', 
+                        backgroundColor: currentChartType === 'tyt' ? 'rgba(0, 123, 255, 0.1)' : 'rgba(255, 193, 7, 0.1)',
+                        borderWidth: 2,
+                        pointBackgroundColor: '#17a2b8',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointRadius: 4, 
+                        pointHoverRadius: 6,
+                        fill: true, 
+                        tension: 0.1 
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { ticks: { font: { size: 10 } }, grid: { display: false } },
+                        y: { beginAtZero: true, min: 0, ticks: { font: { size: 10 } }, border: { dash: [4, 4] } }
+                    },
+                    plugins: {
+                        legend: { display: false }, 
+                        tooltip: { 
+                            callbacks: { 
+                                // YENİ: Tooltip başlığında Deneme Adı ve Tarih yazar
+                                title: function(tooltipItems) {
+                                    const index = tooltipItems[0].dataIndex;
+                                    return examTitles[index] + ' (' + labels[index] + ')';
+                                },
+                                label: function(context) { return ' ' + context.parsed.y + ' Net'; } 
+                            } 
+                        }
+                    }
+                }
+            });
+        }
+
+        document.querySelectorAll('.chart-toggle-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.chart-toggle-btn').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                currentChartType = e.target.getAttribute('data-chart');
+                updateChart(); 
+            });
+        });
+
+        // =================================================================
+        // --- DENEME GÖRÜNTÜLEME VE DÜZENLEME MOTORU ---
+        // =================================================================
+        let currentViewingExam = null;
+        let editingExamId = null;
+        let originalExamEditState = null;
+        const viewExamModal = document.getElementById('viewExamModal');
+
+        window.viewExamDetails = function(id) {
+            const exam = savedExams.find(e => e.id === id);
+            if(!exam) return;
+            currentViewingExam = exam;
+
+            document.getElementById('viewExamTitle').innerText = exam.title;
+            document.getElementById('viewExamDate').innerHTML = `<i class="fa-regular fa-calendar-days"></i> ${formatDateToTurkish(exam.date)}`;
+            document.getElementById('viewExamTotalNet').innerText = parseFloat(exam.net).toFixed(2);
+            
+            let trackName = exam.type === 'tyt' ? 'TYT Genel' : `AYT - ${exam.track}`;
+            document.getElementById('viewExamTrackBadge').innerText = trackName;
+
+            const subjectsContainer = document.getElementById('viewExamSubjects');
+            subjectsContainer.innerHTML = '';
+
+            // Kaydettiğimiz ders detaylarını (D/Y/B) ekrana basıyoruz
+            if(exam.subjects && exam.subjects.length > 0) {
+                exam.subjects.forEach(sub => {
+                    if (sub.d === 0 && sub.y === 0 && sub.b === 0 && sub.net === 0) return; // Boşları gizle
+
+                    subjectsContainer.innerHTML += `
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed #cce5ff; padding-bottom: 6px;">
+                            <span style="font-size: 13px; font-weight: 800; color: #444;">${sub.name}</span>
+                            <div style="display: flex; gap: 8px; font-size: 11px; font-weight: 700;">
+                                <span style="color: #28a745; background: #e6f9ed; padding: 2px 6px; border-radius: 4px;">${sub.d} D</span>
+                                <span style="color: #d9534f; background: #fdf3f2; padding: 2px 6px; border-radius: 4px;">${sub.y} Y</span>
+                                <span style="color: #6c757d; background: #f8f9fa; padding: 2px 6px; border-radius: 4px;">${sub.b} B</span>
+                                <span style="color: #17a2b8; font-weight: 900; background: #e0f7fa; padding: 2px 6px; border-radius: 4px; margin-left: 5px;">${sub.net.toFixed(2)} Net</span>
+                            </div>
+                        </div>
+                    `;
+                });
+            } else {
+                subjectsContainer.innerHTML = '<span style="font-size:12px; color:#888;">Eski kayıt olduğu için detaylı ders verisi bulunmuyor. Düzenleyerek ekleyebilirsiniz.</span>';
+            }
+
+            viewExamModal.style.display = 'flex';
+        };
+
+        // Kapatma İşlemleri
+        document.getElementById('closeViewExamModalBtn').addEventListener('click', () => { viewExamModal.style.display = 'none'; });
+        document.getElementById('closeViewExamBtn').addEventListener('click', () => { viewExamModal.style.display = 'none'; });
+        window.addEventListener('click', (e) => { if (e.target === viewExamModal) viewExamModal.style.display = 'none'; });
+
+        // DÜZENLE BUTONUNA TIKLANDIĞINDA
+        document.getElementById('editExamBtn').addEventListener('click', () => {
+            if(!currentViewingExam) return;
+            
+            editingExamId = currentViewingExam.id;
+            viewExamModal.style.display = 'none';
+            
+            const examModal = document.getElementById('examModal');
+            document.querySelector('#examModal h3') ? document.querySelector('#examModal h3').innerText = "Denemeyi Düzenle" : null;
+            
+            const tabBtn = document.querySelector(`.exam-tab-btn[data-target="${currentViewingExam.type}-section"]`);
+            if(tabBtn) tabBtn.click();
+
+            // Önce ders kutularını ilgili alana göre oluşturuyoruz
+            if (currentViewingExam.type === 'ayt') {
+                document.getElementById('aytTrackSelect').value = currentViewingExam.track;
+                generateSubjectInputs(examSubjectsData.ayt[currentViewingExam.track], 'ayt-subjects-container');
+            } else {
+                generateSubjectInputs(examSubjectsData.tyt, 'tyt-subjects-container');
+            }
+
+            document.getElementById('examTitleInput').value = currentViewingExam.title;
+            document.getElementById('examDateInput').value = currentViewingExam.date;
+
+            const container = document.getElementById(currentViewingExam.type === 'tyt' ? 'tyt-subjects-container' : 'ayt-subjects-container');
+            
+            // Veritabanındaki Doğru/Yanlış değerlerini kutulara dolduruyoruz
+            if(currentViewingExam.subjects) {
+                currentViewingExam.subjects.forEach(sub => {
+                    const row = container.querySelector(`.subject-input-row[data-subject="${sub.name}"]`);
+                    if (row) {
+                        if(sub.d > 0) row.querySelector('.correct-input').value = sub.d;
+                        if(sub.y > 0) row.querySelector('.incorrect-input').value = sub.y;
+                        if(sub.b > 0) row.querySelector('.blank-input').value = sub.b;
+                    }
+                });
+            }
+            
+            calculateTotalNet(); 
+
+            // Çıkış uyarısı için fotoğraf çek
+            originalExamEditState = {
+                title: currentViewingExam.title,
+                date: currentViewingExam.date,
+                net: currentViewingExam.net,
+                type: currentViewingExam.type,
+                track: currentViewingExam.track
+            };
+
+            examModal.style.display = 'flex';
+        });
+
+        // =================================================================
+        // --- DENEMEYİ FIREBASE'E KAYDETME VE GÜNCELLEME MOTORU ---
+        // =================================================================
+        function hasExamFormChanged() {
+            if (!editingExamId || !originalExamEditState) return false;
+            const currentTitle = document.getElementById('examTitleInput').value.trim();
+            const currentDate = document.getElementById('examDateInput').value;
+            const currentNet = document.getElementById('totalNetValue').innerText;
+            const activeTab = document.querySelector('.exam-tab-btn.active').getAttribute('data-target');
+            const currentType = activeTab === 'tyt-section' ? 'tyt' : 'ayt';
+            const currentTrack = currentType === 'ayt' ? document.getElementById('aytTrackSelect').value : null;
+
+            if (currentTitle !== originalExamEditState.title) return true;
+            if (currentDate !== originalExamEditState.date) return true;
+            if (currentNet !== originalExamEditState.net) return true;
+            if (currentType !== originalExamEditState.type) return true;
+            if (currentTrack !== originalExamEditState.track) return true;
+            return false;
+        }
+
+        function closeExamModalAndClear() {
+            const examModal = document.getElementById('examModal');
+            if(examModal) examModal.style.display = 'none';
+            
+            document.querySelector('#examModal h3') ? document.querySelector('#examModal h3').innerText = "Yeni Deneme Ekle" : null;
+            document.getElementById('examTitleInput').value = '';
+            document.getElementById('examDateInput').value = '';
+            document.getElementById('totalNetValue').innerText = '0.00';
+            document.querySelectorAll('.dyb-input').forEach(input => input.value = '');
+            
+            const savedEditId = editingExamId;
+            editingExamId = null;
+            originalExamEditState = null;
+
+            if(savedEditId) window.viewExamDetails(savedEditId);
+        }
+
+        function attemptCloseExamModal() {
+            if (editingExamId && hasExamFormChanged()) {
+                document.getElementById('examCancelConfirmModal').style.display = 'flex';
+            } else {
+                closeExamModalAndClear(); 
+            }
+        }
+
+        // Çarpı ve İptal Butonlarının Güvenli Çıkışı (Eski hatalı butonları eziyoruz)
+        const closeExamModalBtnNode = document.getElementById('closeExamModalBtn');
+        const cancelExamBtnNode = document.getElementById('cancelExamBtn');
+        if(closeExamModalBtnNode) {
+            const newCloseBtn = closeExamModalBtnNode.cloneNode(true);
+            closeExamModalBtnNode.parentNode.replaceChild(newCloseBtn, closeExamModalBtnNode);
+            newCloseBtn.addEventListener('click', attemptCloseExamModal);
+        }
+        if(cancelExamBtnNode) {
+            const newCancelBtn = cancelExamBtnNode.cloneNode(true);
+            cancelExamBtnNode.parentNode.replaceChild(newCancelBtn, cancelExamBtnNode);
+            newCancelBtn.addEventListener('click', attemptCloseExamModal);
+        }
+
+        // Açılış modalı temizliği (Yeni eklemeler sıfırdan başlasın diye)
+        document.getElementById('openExamModalBtn').addEventListener('click', () => {
+            editingExamId = null;
+            originalExamEditState = null;
+        });
+
+        const saveExamBtn = document.getElementById('saveExamBtn');
+        if(saveExamBtn) {
+            const newSaveExamBtn = saveExamBtn.cloneNode(true);
+            saveExamBtn.parentNode.replaceChild(newSaveExamBtn, saveExamBtn);
+            
+            newSaveExamBtn.addEventListener('click', () => {
+                if (!currentUserUid) {
+                    alert("Lütfen giriş yapın!");
+                    return;
+                }
+                
+                const titleVal = document.getElementById('examTitleInput').value.trim();
+                const dateVal = document.getElementById('examDateInput').value;
+                if (titleVal.length === 0 || dateVal.length === 0) {
+                    const examErrorMsg = document.getElementById('examErrorMsg');
+                    examErrorMsg.innerText = "Lütfen Deneme Adı ve Tarihini girin!";
+                    examErrorMsg.style.display = 'block';
+                    setTimeout(() => examErrorMsg.style.display = 'none', 3000);
+                    return;
+                }
+
+                if (editingExamId && !hasExamFormChanged()) {
+                    closeExamModalAndClear();
+                    return;
+                }
+                
+                if (editingExamId && hasExamFormChanged()) {
+                    document.getElementById('examSaveConfirmModal').style.display = 'flex';
+                } else {
+                    executeSaveExam();
+                }
+            });
+        }
+
+        document.getElementById('yesExamSaveBtn').addEventListener('click', () => {
+            document.getElementById('examSaveConfirmModal').style.display = 'none';
+            executeSaveExam();
+        });
+        document.getElementById('yesExamCancelBtn').addEventListener('click', () => {
+            document.getElementById('examCancelConfirmModal').style.display = 'none';
+            closeExamModalAndClear();
+        });
+
+        // Veritabanına Gerçek Kayıt Motoru (Dersler Artık Kaybolmuyor)
+        async function executeSaveExam() {
+            const saveBtn = document.getElementById('saveExamBtn') || document.querySelector('.save-note-btn[id="saveExamBtn"]');
+            const titleVal = document.getElementById('examTitleInput').value.trim();
+            const dateVal = document.getElementById('examDateInput').value;
+            const activeTab = document.querySelector('.exam-tab-btn.active').getAttribute('data-target');
+            const examType = activeTab === 'tyt-section' ? 'tyt' : 'ayt';
+            const track = examType === 'ayt' ? document.getElementById('aytTrackSelect').value : null;
+            const totalNet = document.getElementById('totalNetValue').innerText;
+
+            // Ders Detaylarını Toplama İşlemi
+            const container = document.getElementById(activeTab === 'tyt-section' ? 'tyt-subjects-container' : 'ayt-subjects-container');
+            const rows = container.querySelectorAll('.subject-input-row');
+            let subjectsData = [];
+            
+            rows.forEach(row => {
+                const subjectName = row.getAttribute('data-subject');
+                const d = parseInt(row.querySelector('.correct-input').value) || 0;
+                const y = parseInt(row.querySelector('.incorrect-input').value) || 0;
+                const b = parseInt(row.querySelector('.blank-input').value) || 0;
+                const net = d - (y * 0.25);
+                subjectsData.push({ name: subjectName, d: d, y: y, b: b, net: net });
+            });
+
+            const newExam = {
+                id: editingExamId ? editingExamId : Date.now(),
+                title: titleVal,
+                date: dateVal,
+                type: examType,
+                track: track,
+                net: totalNet,
+                subjects: subjectsData // İŞTE BU KISIM EKSİKTİ, ARTIK FIREBASE'E GİDİYOR!
+            };
+
+            const originalText = saveBtn.innerText;
+            saveBtn.innerText = "Kaydediliyor...";
+            saveBtn.disabled = true;
+
+            try {
+                const examDocRef = doc(db, "users", currentUserUid, "userExams", newExam.id.toString());
+                await setDoc(examDocRef, newExam);
+
+                if (editingExamId) {
+                    const index = savedExams.findIndex(e => e.id === editingExamId);
+                    if(index !== -1) savedExams[index] = newExam;
+                } else {
+                    savedExams.push(newExam);
+                }
+
+                renderExamsToScreen(); 
+                
+                currentViewingExam = newExam;
+                closeExamModalAndClear(); 
+                
+            } catch (error) {
+                console.error("Deneme kaydedilirken hata: ", error);
+                alert("Sistem Hatası: Deneme kaydedilemedi.");
+            } finally {
+                saveBtn.innerText = originalText;
+                saveBtn.disabled = false;
+            }
+        }
+
+        // =================================================================
+        // --- DENEME SİLME MOTORU VE BUTON GÖRÜNÜRLÜĞÜ ---
+        // =================================================================
+        
+        // Yeni ekle derken "Sil" butonunu gizle
+        document.getElementById('openExamModalBtn').addEventListener('click', () => {
+            const deleteBtn = document.getElementById('deleteExamBtn');
+            if(deleteBtn) deleteBtn.style.display = 'none';
+        });
+
+        // "Düzenle" derken "Sil" butonunu görünür yap
+        document.getElementById('editExamBtn').addEventListener('click', () => {
+            const deleteBtn = document.getElementById('deleteExamBtn');
+            if(deleteBtn) deleteBtn.style.display = 'block';
+        });
+
+        const deleteExamBtn = document.getElementById('deleteExamBtn');
+        if (deleteExamBtn) {
+            deleteExamBtn.addEventListener('click', () => {
+                document.getElementById('examDeleteConfirmModal').style.display = 'flex';
+            });
+        }
+
+        // Asıl Silme İşlemi (Firebase + Arayüz)
+        document.getElementById('yesExamDeleteBtn').addEventListener('click', async () => {
+            document.getElementById('examDeleteConfirmModal').style.display = 'none';
+            if (!currentUserUid || !editingExamId) return;
+
+            const originalText = deleteExamBtn.innerHTML;
+            deleteExamBtn.innerHTML = "Siliniyor...";
+            deleteExamBtn.disabled = true;
+
+            try {
+                // Veritabanından (Firestore) sil
+                await deleteDoc(doc(db, "users", currentUserUid, "userExams", editingExamId.toString()));
+                
+                // Ekran hafızasından sil
+                savedExams = savedExams.filter(e => e.id !== editingExamId);
+                
+                // Ekranları ve grafiği güncelle
+                renderExamsToScreen();
+                
+                // Modalı sıfırlayıp kapat
+                const examModal = document.getElementById('examModal');
+                if(examModal) examModal.style.display = 'none';
+                editingExamId = null;
+                originalExamEditState = null;
+                
+            } catch (error) {
+                console.error("Deneme silinirken hata: ", error);
+                alert("Sistem Hatası: Deneme silinemedi.");
+            } finally {
+                deleteExamBtn.innerHTML = originalText;
+                deleteExamBtn.disabled = false;
+            }
+        });
+
+    </script>
+</body>
+</html>

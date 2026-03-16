@@ -380,6 +380,16 @@
             width: 100%;
         }
 
+        /* --- TAKVİM KUTUSU TAŞMA ENGELLEYİCİ --- */
+        .calendar-widget {
+            justify-content: flex-start !important; /* YENİ: İçeriği merkeze hizalamak yerine en üste (tavana) sabitler */
+            overflow-y: auto; 
+            min-height: 230px; 
+            padding-top: 15px; /* Üst kısımdan çok hafif, şık bir nefes payı bırakır */
+        }
+        .calendar-widget::-webkit-scrollbar { width: 4px; }
+        .calendar-widget::-webkit-scrollbar-thumb { background-color: #cce5ff; border-radius: 4px; }
+
         /* --- TAKVİM İÇ DETAYLARI --- */
         .calendar-header {
             display: flex;
@@ -1516,7 +1526,8 @@
             flex: 1;
             display: flex;
             flex-direction: column;
-            min-height: 180px; /* Grafiğin sıkışmasını engeller */
+            min-height: 0 !important; /* YENİ: 180px olan katı alt sınırı kaldırdık, ekran kadar ezilmesine izin veriyoruz */
+            overflow: hidden; /* Dışarı patlamasını engeller */
         }
         
         .chart-header {
@@ -1554,6 +1565,7 @@
             flex: 1;
             position: relative;
             width: 100%;
+            min-height: 0; /* YENİ: Grafik çizim aracının (Chart.js) kutuyu dışarı doğru zorlamasını sıfırlar */
         }
 
         /* ======================================================= */
@@ -2266,6 +2278,13 @@
             z-index: 10;
         }
 
+        /* ÖZEL HIZ SEÇİCİ BUTONLARI */
+        .speed-opt {
+            font-size: 11px; font-weight: 800; padding: 4px 8px; border-radius: 6px; cursor: pointer; color: #888; transition: all 0.2s;
+        }
+        .speed-opt:hover { background: #f0f8ff; color: #007bff; }
+        .speed-opt.active { background: #007bff; color: #fff; box-shadow: 0 2px 4px rgba(0,123,255,0.2); }
+
     </style>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -2318,9 +2337,14 @@
                     <i class="fa-solid fa-chart-line widget-icon"></i>
                     <h2 class="widget-title">Denemelerim</h2>
                 </div>
-                <button class="add-note-btn" id="openExamModalBtn" data-custom-title="Yeni Deneme Ekle">
-                    <i class="fa-solid fa-plus"></i>
-                </button>
+                <div style="display: flex; gap: 8px;">
+                    <button class="add-note-btn" id="openExpandedExamsBtn" data-custom-title="Detaylı Analizleri Gör" style="background-color: #e6f2ff; color: #007bff; border: 1px solid #cce5ff;">
+                        <i class="fa-solid fa-expand"></i>
+                    </button>
+                    <button class="add-note-btn" id="openExamModalBtn" data-custom-title="Yeni Deneme Ekle">
+                        <i class="fa-solid fa-plus"></i>
+                    </button>
+                </div>
             </div>
             
             <div class="exams-widget-content">
@@ -2363,7 +2387,11 @@
             <div class="widget-header" style="display: flex; justify-content: space-between; align-items: center;">
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <i class="fa-solid fa-calendar-day widget-icon"></i>
-                    <h2 class="widget-title">Bugünün Programı</h2>
+                    <h2 class="widget-title" id="dashboardScheduleTitle" style="margin-right: 5px; min-width: 140px;">Bugünün Programı</h2>
+                    <div style="display: flex; align-items: center; gap: 5px;">
+                        <button id="prevDashDayBtn" style="background: #e6f2ff; color: #007bff; border: none; width: 24px; height: 24px; border-radius: 6px; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.backgroundColor='#cce5ff'" onmouseout="this.style.backgroundColor='#e6f2ff'" data-custom-title="Önceki Gün"><i class="fa-solid fa-chevron-left"></i></button>
+                        <button id="nextDashDayBtn" style="background: #e6f2ff; color: #007bff; border: none; width: 24px; height: 24px; border-radius: 6px; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.backgroundColor='#cce5ff'" onmouseout="this.style.backgroundColor='#e6f2ff'" data-custom-title="Sonraki Gün"><i class="fa-solid fa-chevron-right"></i></button>
+                    </div>
                 </div>
                 <button id="openWeeklyPlannerBtn" data-custom-title="Geniş Ekran Haftalık Planlayıcı" style="background-color: #e6f2ff; color: #007bff; border: none; padding: 6px 12px; border-radius: 8px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 12px; transition: all 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
                     <i class="fa-solid fa-table-list"></i> Tüm Hafta
@@ -2410,10 +2438,18 @@
     <main class="main-content">
         
         <div class="widget-box calendar-widget">
-            <div class="calendar-header">
-                <button class="cal-btn"><i class="fa-solid fa-chevron-left"></i></button>
-                <h2 id="month-year">Yükleniyor...</h2>
-                <button class="cal-btn"><i class="fa-solid fa-chevron-right"></i></button>
+            <div class="calendar-header" style="position: relative; display: flex; justify-content: center; align-items: center; width: 100%; margin-bottom: 15px;">
+                
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <button class="cal-btn" id="calPrevMonthBtn" data-custom-title="Önceki Ay"><i class="fa-solid fa-chevron-left"></i></button>
+                    <h2 id="month-year" style="margin: 0; min-width: 85px; text-align: center;">Yükleniyor...</h2>
+                    <button class="cal-btn" id="calNextMonthBtn" data-custom-title="Sonraki Ay"><i class="fa-solid fa-chevron-right"></i></button>
+                </div>
+
+                <button id="calSettingsBtn" style="position: absolute; right: 0; background: none; border: none; color: #aaa; cursor: pointer; font-size: 14px; transition: color 0.2s;" onmouseover="this.style.color='#007bff'" onmouseout="this.style.color='#aaa'" data-custom-title="Takvim Ayarları">
+                    <i class="fa-solid fa-gear"></i>
+                </button>
+
             </div>
             
             <div class="calendar-weekdays">
@@ -2576,7 +2612,7 @@
         </div>
     </div>
 
-    <div id="examModal" class="custom-modal">
+    <div id="examModal" class="custom-modal" style="z-index: 3300;">
         <div class="custom-modal-content" style="max-width: 550px;">
             <div class="modal-header" style="justify-content: center; position: relative;">
                 <div class="exam-tabs">
@@ -2635,7 +2671,7 @@
         </div>
     </div>
 
-    <div id="viewExamModal" class="custom-modal">
+    <div id="viewExamModal" class="custom-modal" style="z-index: 3200;">
         <div class="custom-modal-content" style="max-width: 500px;">
             <div class="modal-header">
                 <h3>Deneme Detayı</h3>
@@ -2666,7 +2702,7 @@
         </div>
     </div>
 
-    <div id="examSaveConfirmModal" class="custom-modal" style="z-index: 2500;">
+    <div id="examSaveConfirmModal" class="custom-modal" style="z-index: 3400;">
         <div class="custom-modal-content" style="max-width: 400px; text-align: center; padding: 30px;">
             <i class="fa-solid fa-circle-question" style="font-size: 50px; color: #007bff; margin-bottom: 15px;"></i>
             <h3 style="margin-bottom: 10px; color: #333;">Değişiklikleri Kaydet</h3>
@@ -2678,7 +2714,7 @@
         </div>
     </div>
 
-    <div id="examCancelConfirmModal" class="custom-modal" style="z-index: 2500;">
+    <div id="examCancelConfirmModal" class="custom-modal" style="z-index: 3400;">
         <div class="custom-modal-content" style="max-width: 400px; text-align: center; padding: 30px;">
             <i class="fa-solid fa-triangle-exclamation" style="font-size: 50px; color: #d9534f; margin-bottom: 15px;"></i>
             <h3 style="margin-bottom: 10px; color: #333;">Kaydedilmemiş Değişiklikler</h3>
@@ -2690,7 +2726,7 @@
         </div>
     </div>
 
-    <div id="examDeleteConfirmModal" class="custom-modal" style="z-index: 2500;">
+    <div id="examDeleteConfirmModal" class="custom-modal" style="z-index: 3400;">
         <div class="custom-modal-content" style="max-width: 400px; text-align: center; padding: 30px;">
             <i class="fa-solid fa-trash-can" style="font-size: 50px; color: #d9534f; margin-bottom: 15px;"></i>
             <h3 style="margin-bottom: 10px; color: #333;">Denemeyi Sil</h3>
@@ -2819,23 +2855,48 @@
                     </div>
                 </div>
 
-                <div class="input-group" style="margin-top: 5px; margin-bottom: 5px;">
-                    <label>Playlist Adı <span class="required-star">*</span></label>
-                    <input type="text" id="playlistCustomTitleInput" class="modal-input" placeholder="Örn: Dr. Biyoloji Sistemler Kampı">
-                </div>
-
                 <div class="input-group">
                     <label>Görev Türü</label>
-                    <div class="task-custom-select" id="tcs-taskType">
-                        <div class="tcs-trigger" id="tcs-taskTypeTrigger" style="background-color: #f0f8ff; color: #007bff;"><span class="tcs-text">Konu Anlatımı</span> <i class="fa-solid fa-chevron-down"></i></div>
-                        <div class="tcs-options" id="taskTypeOptions">
-                            <div class="tcs-option selected" data-value="Konu Anlatımı">Konu Anlatımı</div>
-                            <div class="tcs-option" data-value="Test Çözümü">Test Çözümü</div>
-                            <div class="tcs-option" data-value="Deneme Çözümü">Deneme Çözümü</div>
-                            <div class="tcs-option" data-value="Genel Tekrar">Genel Tekrar</div>
-                            <div class="tcs-option" data-value="Genel Deneme" style="display: none;">Genel Deneme</div>
+                    <div style="display: flex; gap: 10px; align-items: stretch;">
+                        <div class="task-custom-select" id="tcs-taskType" style="flex: 1;">
+                            <div class="tcs-trigger" id="tcs-taskTypeTrigger" style="background-color: #f0f8ff; color: #007bff;"><span class="tcs-text">Konu Anlatımı</span> <i class="fa-solid fa-chevron-down"></i></div>
+                            <div class="tcs-options" id="taskTypeOptions">
+                                <div class="tcs-option selected" data-value="Konu Anlatımı">Konu Anlatımı</div>
+                                <div class="tcs-option" data-value="Test Çözümü">Test Çözümü</div>
+                                <div class="tcs-option" data-value="Deneme Çözümü">Deneme Çözümü</div>
+                                <div class="tcs-option" data-value="Genel Tekrar">Genel Tekrar</div>
+                                <div class="tcs-option" data-value="Genel Deneme" style="display: none;">Genel Deneme</div>
+                            </div>
+                            <input type="hidden" id="taskType" value="Konu Anlatımı">
                         </div>
-                        <input type="hidden" id="taskType" value="Konu Anlatımı">
+                        
+                        <button type="button" id="selectFromPlaylistBtn" class="save-note-btn" style="display: flex; gap: 8px; align-items: center; justify-content: center; background-color: #ff0000; padding: 0 15px; font-size: 13px; border-radius: 10px;">
+                            <i class="fa-brands fa-youtube" style="font-size: 18px;"></i> Seç
+                        </button>
+                    </div>
+                </div>
+
+                <div id="playlistSelectionSummary" style="display: none; background: #f8fbff; border: 1px solid #cce5ff; border-radius: 12px; padding: 15px; margin-top: 5px; transition: all 0.3s ease; box-shadow: 0 4px 10px rgba(0,123,255,0.05);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed #cce5ff; padding-bottom: 10px; margin-bottom: 10px;">
+                        <div style="font-weight: 800; color: #0056b3; font-size: 13px;" id="pss-text"><i class="fa-solid fa-list-check"></i> 0 Video Eklendi</div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="color: #888; font-weight: 800; font-size: 11px;">Hız:</span>
+                            <div id="customSpeedSelector" style="display: flex; gap: 2px; background: #fff; padding: 3px; border-radius: 8px; border: 1px solid #cce5ff;">
+                                <div class="speed-opt active" data-val="1">1x</div>
+                                <div class="speed-opt" data-val="1.25">1.25x</div>
+                                <div class="speed-opt" data-val="1.5">1.5x</div>
+                                <div class="speed-opt" data-val="1.75">1.75x</div>
+                                <div class="speed-opt" data-val="2">2x</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="pss-video-list" style="display: flex; flex-direction: column; gap: 6px; max-height: 150px; overflow-y: auto; margin-bottom: 10px; padding-right: 5px;">
+                        </div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; background: #e6f2ff; padding: 8px 12px; border-radius: 8px;">
+                        <span style="font-weight: 800; color: #007bff; font-size: 12px;"><i class="fa-solid fa-stopwatch"></i> Videoların Süresi:</span>
+                        <span id="pss-duration" style="font-weight: 900; font-size: 14px; color: #0056b3;">0 Dk</span>
                     </div>
                 </div>
 
@@ -2844,7 +2905,7 @@
                     <textarea id="taskDesc" class="modal-textarea" placeholder="Hangi konu çalışılacak veya kaç soru çözülecek?" style="min-height: 70px;"></textarea>
                 </div>
 
-                <div class="input-group">
+                <div class="input-group" style="flex: 1;">
                     <label>Tahmini Süre <span class="required-star">*</span></label>
                     <div class="custom-number-input">
                         <input type="number" id="taskDuration" class="modal-input no-spinner" placeholder="Örn: 45" min="1">
@@ -2852,6 +2913,18 @@
                         <div class="cni-controls">
                             <button type="button" class="cni-btn" id="durDownBtn"><i class="fa-solid fa-minus"></i></button>
                             <button type="button" class="cni-btn" id="durUpBtn"><i class="fa-solid fa-plus"></i></button>
+                        </div>
+                    </div>
+                </div>
+                    
+                <div class="input-group" id="taskQuestionCountGroup" style="flex: 1; display: none;">
+                    <label>Soru Sayısı</label>
+                    <div class="custom-number-input">
+                        <input type="number" id="taskQuestionCount" class="modal-input no-spinner" placeholder="Örn: 40" min="1" style="padding-right: 85px; transition: all 0.3s;">
+                        <span class="cni-label" style="right: 75px; pointer-events: none;">Soru</span>
+                        <div class="cni-controls">
+                            <button type="button" class="cni-btn" id="qcDownBtn"><i class="fa-solid fa-minus"></i></button>
+                            <button type="button" class="cni-btn" id="qcUpBtn"><i class="fa-solid fa-plus"></i></button>
                         </div>
                     </div>
                 </div>
@@ -2882,12 +2955,18 @@
                     <span id="viewTaskBadge" class="task-card-badge" style="font-size: 11px; padding: 5px 10px;"></span>
                 </div>
                 
-                <div style="display: flex; gap: 10px; margin-bottom: 5px; font-size: 12px; font-weight: 800;">
+                <div style="display: flex; gap: 10px; margin-bottom: 5px; font-size: 12px; font-weight: 800; flex-wrap: wrap;">
                     <span id="viewTaskType" style="color: #007bff; background: #e6f2ff; padding: 4px 10px; border-radius: 6px;"></span>
+                    <span id="viewTaskQuestionCount" style="display: none; color: #fd7e14; background: #fff8e1; padding: 4px 10px; border-radius: 6px;"></span>
                     <span id="viewTaskDuration" style="color: #6c757d; background: #f8f9fa; padding: 4px 10px; border-radius: 6px;"></span>
                 </div>
                 
                 <div id="viewTaskDesc" style="margin-top: 10px; background-color: #f8fbff; border: 1px solid #eef2f5; border-radius: 12px; padding: 15px; font-size: 14px; color: #444; line-height: 1.6; white-space: pre-wrap;"></div>
+                
+                <div id="viewTaskVideoList" style="display: none; margin-top: 15px; border-top: 1px dashed #cce5ff; padding-top: 15px;">
+                    <h4 style="font-size: 13px; color: #007bff; margin-bottom: 10px;"><i class="fa-solid fa-list-ul"></i> Plana Eklenen Videolar</h4>
+                    <div id="vtv-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow-y: auto; padding-right: 5px;"></div>
+                </div>
             </div>
             
             <div class="modal-footer" style="justify-content: space-between;">
@@ -2986,16 +3065,13 @@
 
     <div id="playlistsModal" class="custom-modal" style="z-index: 3000;">
         <div class="custom-modal-content" style="max-width: 95%; width: 1200px; height: 85vh; display: flex; flex-direction: column;">
-            
             <div class="modal-header" style="padding: 20px 30px;">
                 <h3 style="font-size: 20px;">
                     <i class="fa-brands fa-youtube" style="color: #ff0000; margin-right: 8px; font-size: 24px; vertical-align: middle;"></i> Playlistlerim
                 </h3>
                 <span class="close-modal-btn" id="closePlaylistsModalBtn" style="font-size: 28px;">&times;</span>
             </div>
-            
             <div class="modal-body" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; padding: 25px 30px; background-color: #fcfcfc;">
-                
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                     <div style="display: flex; flex-direction: column;">
                         <h2 style="font-size: 22px; font-weight: 800; color: #333;">Kayıtlı Listeler</h2>
@@ -3010,7 +3086,6 @@
                         </button>
                     </div>
                 </div>
-
                 <div style="display: flex; gap: 15px; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 2px solid #eef2f5; flex-wrap: wrap;">
                     <div style="display: flex; flex-direction: column; flex: 1; min-width: 120px;">
                         <label style="font-size: 11px; font-weight: 800; color: #888; margin-bottom: 4px;">Sınav Türü</label>
@@ -3037,7 +3112,6 @@
                         </select>
                     </div>
                 </div>
-
                 <div id="playlistsGrid" style="flex: 1; overflow-y: auto; padding-right: 5px;">
                     <div class="placeholder-text" style="text-align: center; padding: 40px; font-size: 14px;">
                         <i class="fa-brands fa-youtube" style="font-size: 40px; color: #cce5ff; margin-bottom: 15px; display: block;"></i>
@@ -3054,7 +3128,6 @@
                 <h3><i class="fa-solid fa-link" style="color:#007bff; margin-right:8px;"></i> Playlist Aktar</h3>
                 <span class="close-modal-btn" id="closeAddPlaylistModalBtn">&times;</span>
             </div>
-            
             <div class="modal-body" style="gap: 15px;">
                 <div style="display: flex; gap: 15px;">
                     <div class="input-group" style="flex: 1;">
@@ -3068,7 +3141,6 @@
                             <input type="hidden" id="playlistExamType" value="tyt">
                         </div>
                     </div>
-                    
                     <div class="input-group" id="playlistTrackGroup" style="flex: 1; display: none;">
                         <label>Alan</label>
                         <div class="task-custom-select" id="p-tcs-track">
@@ -3083,7 +3155,6 @@
                         </div>
                     </div>
                 </div>
-
                 <div class="input-group">
                     <label>Ders Seçimi</label>
                     <div class="task-custom-select" id="p-tcs-subject">
@@ -3097,12 +3168,12 @@
                         <input type="hidden" id="playlistSubject" value="Türkçe">
                     </div>
                 </div>
-
+                
                 <div class="input-group">
                     <label>Playlist Adı <span class="required-star">*</span></label>
-                    <input type="text" id="playlistCustomTitleInput" class="modal-input" placeholder="Örn: Dr. Biyoloji Sistemler Kampı">
+                    <input type="text" id="yeniGercekIsimKutusu" class="modal-input" placeholder="Örn: Dr. Biyoloji Sistemler Kampı">
                 </div>
-
+                
                 <div class="input-group">
                     <label>YouTube Playlist Linki <span class="required-star">*</span></label>
                     <div style="display: flex; gap: 10px;">
@@ -3110,7 +3181,6 @@
                         <button class="save-note-btn" id="fetchPlaylistBtn" style="flex-shrink: 0;"><i class="fa-solid fa-cloud-arrow-down"></i> Videoları Bul</button>
                     </div>
                 </div>
-
                 <div style="max-height: 250px; overflow-y: auto; border: 1px solid #eef2f5; border-radius: 10px; background: #f8fbff; padding: 10px;">
                     <table style="width: 100%; border-collapse: collapse; font-size: 13px;" id="youtubeVideoTable">
                         <thead style="position: sticky; top: -10px; background: #f8fbff; z-index: 10;">
@@ -3126,7 +3196,6 @@
                     </table>
                 </div>
             </div>
-            
             <div class="modal-footer" style="justify-content: flex-end;">
                 <button class="cancel-note-btn" id="cancelAddPlaylistBtn">İptal</button>
                 <button class="save-note-btn" id="confirmSavePlaylistBtn" style="display: none; background-color: #28a745;">Listeyi Kaydet</button>
@@ -3145,8 +3214,7 @@
                 <span class="close-modal-btn" id="closeViewPlaylistModalBtn">&times;</span>
             </div>
             <div class="modal-body" style="overflow-y: auto; padding: 15px; flex: 1;">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 15px; padding: 10px 15px; background: #e6f2ff; border-radius: 8px; color: #007bff; font-weight: bold; border: 1px solid #cce5ff;">
-                    <span id="vp-count"><i class="fa-solid fa-video"></i> 0 Video</span>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 1px; padding: 10px 15px; background: #e6f2ff; border-radius: 8px; color: #007bff; font-weight: bold; border: 1px solid #cce5ff;">                    <span id="vp-count"><i class="fa-solid fa-video"></i> 0 Video</span>
                     <span id="vp-duration"><i class="fa-solid fa-stopwatch"></i> 0 Saat 0 Dk</span>
                     <span id="vp-progress"><i class="fa-solid fa-percent"></i> %0 Tamamlandı</span>
                 </div>
@@ -3164,10 +3232,28 @@
                     </tbody>
                 </table>
             </div>
-            
             <div class="modal-footer" style="justify-content: flex-end; padding: 15px; border-top: 1px solid #eef2f5; background-color: #f8f9fa;">
                 <button class="cancel-note-btn" id="cancelViewPlaylistBtn" style="margin-right: 12px;">Kapat</button>
                 <button class="save-note-btn" id="savePlaylistProgressBtn" style="background-color: #28a745;"><i class="fa-solid fa-floppy-disk"></i> İlerlemeyi Kaydet</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="renamePlaylistModal" class="custom-modal" style="z-index: 3500;">
+        <div class="custom-modal-content" style="max-width: 400px;"> 
+            <div class="modal-header">
+                <h3>Playlist Adını Düzenle</h3>
+                <span class="close-modal-btn" id="closeRenamePlaylistModalBtn">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="input-group">
+                    <label>Yeni Playlist Adı</label>
+                    <input type="text" id="newPlaylistNameInput" class="modal-input" placeholder="Örn: Limit Türev İntegral Kampı">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="cancel-note-btn" id="cancelRenamePlaylistBtn">İptal Et</button>
+                <button class="save-note-btn" id="saveRenamePlaylistBtn">Kaydet</button>
             </div>
         </div>
     </div>
@@ -3217,24 +3303,231 @@
         </div>
     </div>
 
-    <div id="renamePlaylistModal" class="custom-modal" style="z-index: 3500;">
-        <div class="custom-modal-content" style="max-width: 400px;"> 
+    <div id="selectPlaylistModal" class="custom-modal" style="z-index: 2800;">
+        <div class="custom-modal-content" style="max-width: 500px;">
             <div class="modal-header">
-                <h3>Playlist Adını Düzenle</h3>
-                <span class="close-modal-btn" id="closeRenamePlaylistModalBtn">&times;</span>
+                <h3><i class="fa-brands fa-youtube" style="color:#ff0000; margin-right:8px;"></i> Ana Playlistler (<span id="spm-subject"></span>)</h3>
+                <span class="close-modal-btn" id="closeSelectPlaylistModalBtn">&times;</span>
             </div>
-            <div class="modal-body">
-                <div class="input-group">
-                    <label>Yeni Playlist Adı</label>
-                    <input type="text" id="newPlaylistNameInput" class="modal-input" placeholder="Örn: Limit Türev İntegral Kampı">
+            <div class="modal-body" id="spm-body" style="max-height: 400px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 15px;">
                 </div>
+        </div>
+    </div>
+    
+    <div id="selectVideoModal" class="custom-modal" style="z-index: 2900;">
+        <div class="custom-modal-content" style="max-width: 600px;">
+            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <h3><i class="fa-solid fa-video" style="color:#007bff; margin-right:8px;"></i> Görev Yapılacak Videoları Seç</h3>
+                <span class="close-modal-btn" id="closeSelectVideoModalBtn" style="line-height: 1;">&times;</span>
             </div>
-            <div class="modal-footer">
-                <button class="cancel-note-btn" id="cancelRenamePlaylistBtn">İptal Et</button>
-                <button class="save-note-btn" id="saveRenamePlaylistBtn">Kaydet</button>
+            <div class="modal-body" id="svm-body" style="max-height: 450px; overflow-y: auto; padding: 10px 15px;">
+                </div>
+            <div class="modal-footer" style="justify-content: space-between; padding: 15px; border-top: 1px solid #eef2f5;">
+                <button class="cancel-note-btn" id="backToPlaylistsBtn"><i class="fa-solid fa-arrow-left"></i> Geri</button>
+                <button class="save-note-btn" id="confirmSelectedVideosBtn" style="background-color: #007bff;">Seçilenleri Ekle (0)</button>
             </div>
         </div>
     </div>
+
+    <div id="expandedExamsModal" class="custom-modal" style="z-index: 3100;">
+        <div class="custom-modal-content" style="max-width: 95%; width: 1400px; height: 90vh; display: flex; flex-direction: column; background: #f4f7f6;">
+            
+            <div class="modal-header" style="padding: 20px 30px; display: flex; justify-content: space-between; align-items: center; background: #fff;">
+                <div style="display: flex; align-items: center; gap: 30px; flex-wrap: wrap;">
+                    <h3 style="font-size: 22px; margin:0; color: #333;"><i class="fa-solid fa-chart-pie" style="color:#007bff; margin-right:8px;"></i> Deneme Analiz Merkezi</h3>
+                    <div class="exam-tabs" style="margin: 0; gap: 15px; display: flex; align-items: center;">
+                        <button class="exam-tab-btn active" id="expandedTabTyt" style="font-size: 16px;">TYT Analizleri</button>
+                        <button class="exam-tab-btn" id="expandedTabAyt" style="font-size: 16px;">AYT Analizleri</button>
+                        
+                        <div id="expandedAytTrackSelector" style="display: none; margin-left: 10px;">
+                            <div class="task-custom-select" style="width: 150px;">
+                                <div class="tcs-trigger" style="background: #f0f8ff; color:#007bff; border-color:#cce5ff; padding: 6px 12px;"><span class="tcs-text">Sayısal</span> <i class="fa-solid fa-chevron-down"></i></div>
+                                <div class="tcs-options">
+                                    <div class="tcs-option selected" data-value="sayisal">Sayısal</div>
+                                    <div class="tcs-option" data-value="ea">Eşit Ağırlık</div>
+                                    <div class="tcs-option" data-value="sozel">Sözel</div>
+                                    <div class="tcs-option" data-value="dil">Yabancı Dil</div>
+                                </div>
+                                <input type="hidden" id="expandedAytTrack" value="sayisal">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <span class="close-modal-btn" id="closeExpandedExamsBtn" style="font-size: 32px;">&times;</span>
+            </div>
+            
+            <div class="modal-body" style="flex: 1; display: flex; flex-direction: row; overflow: hidden; padding: 0;">
+                <div style="width: 320px; background: #fff; border-right: 1px solid #eef2f5; display: flex; flex-direction: column; flex-shrink: 0; position: relative;">
+                    
+                    <div style="padding: 20px 20px 10px 20px; border-bottom: 1px solid #eef2f5; font-weight: 800; color: #007bff; font-size: 14px; display: flex; justify-content: space-between; align-items: center;">
+                        <span>Kayıtlı Denemeler</span>
+                        <span id="expandedExamCount" style="color: #888; font-size: 12px; background: #f0f8ff; padding: 2px 8px; border-radius: 6px;">0</span>
+                    </div>
+
+                    <div id="expandedExamsList" style="flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; padding-bottom: 80px;">
+                        </div>
+
+                    <div style="position: absolute; bottom: 0; left: 0; width: 100%; background: #fff; border-top: 1px solid #eef2f5; padding: 12px 15px; display: flex; flex-direction: column; gap: 10px; z-index: 10; box-shadow: 0 -4px 10px rgba(0,0,0,0.02);">
+                        
+                        <div id="examDefaultActionBtns" style="display: flex; gap: 10px; width: 100%; flex-wrap: wrap;">
+                            
+                            <div style="display: flex; flex: 1;">
+                                <button class="save-note-btn" id="openExamSortBtn" style="flex: 1; background-color: #f0f8ff; color: #007bff; border: 1px solid #cce5ff; font-size: 12px; font-weight: 800; display: flex; justify-content: center; gap: 6px; align-items: center; padding: 10px 0; border-radius: 8px 0 0 8px; transition: all 0.2s;">
+                                    <i class="fa-solid fa-arrow-down-a-z"></i> Sırala
+                                </button>
+                                <button class="cancel-note-btn" id="resetExamSortBtn" data-custom-title="Sıralamayı Sıfırla" style="background-color: #ffeaea; color: #d9534f; border: 1px solid #ffc2c2; border-left: none; padding: 0 14px; border-radius: 0 8px 8px 0; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;">
+                                    <i class="fa-solid fa-xmark" style="font-size: 15px;"></i>
+                                </button>
+                            </div>
+                            
+                            <div style="display: flex; flex: 1;">
+                                <button class="save-note-btn" id="openExamFilterBtn" style="flex: 1; background-color: #f0f8ff; color: #007bff; border: 1px solid #cce5ff; font-size: 12px; font-weight: 800; display: flex; justify-content: center; gap: 6px; align-items: center; padding: 10px 0; border-radius: 8px 0 0 8px; transition: all 0.2s;">
+                                    <i class="fa-solid fa-filter"></i> Filtrele
+                                </button>
+                                <button class="cancel-note-btn" id="resetExamFilterBtn" data-custom-title="Filtreyi Sıfırla" style="background-color: #ffeaea; color: #d9534f; border: 1px solid #ffc2c2; border-left: none; padding: 0 14px; border-radius: 0 8px 8px 0; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;">
+                                    <i class="fa-solid fa-xmark" style="font-size: 15px;"></i>
+                                </button>
+                            </div>
+                            
+                            <button class="cancel-note-btn" id="toggleExamDeleteModeBtn" data-custom-title="Çoklu Silme Modu" style="display: flex; align-items: center; justify-content: center; color: #d9534f; border: 1px solid #ffc2c2; background-color: #ffeaea; padding: 0 14px; border-radius: 8px; transition: all 0.2s;">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </div>
+                        
+                        <div id="examDeleteActionBtns" style="display: none; width: 100%; gap: 10px;">
+                            <button class="cancel-note-btn" id="cancelExamDeleteBtn" style="flex: 1; font-size: 12px; font-weight: 800;">İptal Et</button>
+                            <button class="save-note-btn" id="confirmExamDeleteBtn" style="flex: 1; background-color: #d9534f; font-size: 12px; font-weight: 800;">Sil (0)</button>
+                        </div>
+
+                    </div>
+                </div>
+                
+                <div id="expandedChartsContainer" style="flex: 1; overflow-y: auto; padding: 25px; display: flex; flex-direction: column; gap: 20px;">
+                    
+                    <div style="background: #fff; border-radius: 16px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid #eef2f5;">
+                        <h4 style="margin-bottom: 15px; color: #333; font-size: 16px; font-weight: 800;"><i class="fa-solid fa-chart-line" style="color:#007bff; margin-right: 5px;"></i> Genel Net Gidişatı</h4>
+                        <div style="height: 280px; position: relative;">
+                            <canvas id="expandedMainChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <h4 style="color: #555; font-size: 15px; font-weight: 800; margin-top: 5px; margin-bottom: -5px;"><i class="fa-solid fa-layer-group" style="color:#ffc107; margin-right: 5px;"></i> Ders Bazlı İlerleme</h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;" id="expandedSubjectChartsContainer">
+                        </div>
+                    
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="examFilterModal" class="custom-modal" style="z-index: 3500;">
+        <div class="custom-modal-content" style="max-width: 450px; overflow: visible !important; border-radius: 14px; position: relative;">
+            
+            <div id="customToast" style="position: absolute; top: -75px; left: 50%; width: 90%; background: #fff; border-left: 5px solid #d9534f; padding: 12px 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); border-radius: 8px; display: flex; align-items: center; gap: 12px; z-index: 9999; transform: translate(-50%, 20px); opacity: 0; visibility: hidden; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
+                <i class="fa-solid fa-circle-exclamation" id="toastIcon" style="color: #d9534f; font-size: 24px;"></i>
+                <div>
+                    <div style="font-weight: 800; color: #333; font-size: 13px; margin-bottom: 2px;" id="toastTitle">Hatalı Net Yazımı</div>
+                    <div style="color: #666; font-size: 11px; font-weight: 600;" id="toastMessage">Lütfen değerleri kontrol edin.</div>
+                </div>
+            </div>
+
+            <div class="modal-header" style="border-top-left-radius: 14px; border-top-right-radius: 14px;">
+                <h3><i class="fa-solid fa-filter" style="color:#007bff; margin-right:8px;"></i> Denemeleri Filtrele</h3>
+                <span class="close-modal-btn" id="closeExamFilterModalBtn">&times;</span>
+            </div>
+            <div class="modal-body" style="gap: 15px; overflow: visible !important;">
+                <div class="input-group">
+                    <label>Tarih Aralığı</label>
+                    <div class="task-custom-select" style="margin-bottom: 10px;">
+                        <div class="tcs-trigger"><span class="tcs-text">Tüm Zamanlar</span> <i class="fa-solid fa-chevron-down"></i></div>
+                        <div class="tcs-options">
+                            <div class="tcs-option selected" data-value="all">Tüm Zamanlar</div>
+                            <div class="tcs-option" data-value="last30">Son 30 Gün</div>
+                            <div class="tcs-option" data-value="last90">Son 3 Ay</div>
+                            <div class="tcs-option" data-value="custom">Özel Tarih Aralığı Gir</div>
+                        </div>
+                        <input type="hidden" id="ef-datePreset" value="all">
+                    </div>
+                    <div id="ef-customDateGroup" style="display: none; gap: 10px;">
+                        <input type="date" id="ef-startDate" class="modal-input" style="flex: 1;">
+                        <input type="date" id="ef-endDate" class="modal-input" style="flex: 1;">
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label>Net Filtresi (Hedef Ders veya Toplam)</label>
+                    <div class="task-custom-select" style="margin-bottom: 10px;">
+                        <div class="tcs-trigger"><span class="tcs-text" id="ef-subject-text">Genel (Toplam Net)</span> <i class="fa-solid fa-chevron-down"></i></div>
+                        <div class="tcs-options" id="ef-subject-options">
+                            </div>
+                        <input type="hidden" id="ef-subject" value="total">
+                    </div>
+                    
+                    <div style="display: flex; gap: 10px;">
+                        <div class="custom-number-input" style="flex: 1;">
+                            <input type="number" id="ef-minNet" class="modal-input no-spinner" placeholder="Min Net" step="0.25" style="transition: all 0.3s; padding-right: 65px;">
+                            <div class="cni-controls" style="right: 5px;">
+                                <button type="button" class="cni-btn" id="ef-minDown" style="width: 26px; height: 26px;"><i class="fa-solid fa-minus" style="font-size: 10px;"></i></button>
+                                <button type="button" class="cni-btn" id="ef-minUp" style="width: 26px; height: 26px;"><i class="fa-solid fa-plus" style="font-size: 10px;"></i></button>
+                            </div>
+                        </div>
+                        <div class="custom-number-input" style="flex: 1;">
+                            <input type="number" id="ef-maxNet" class="modal-input no-spinner" placeholder="Max Net" step="0.25" style="transition: all 0.3s; padding-right: 65px;">
+                            <div class="cni-controls" style="right: 5px;">
+                                <button type="button" class="cni-btn" id="ef-maxDown" style="width: 26px; height: 26px;"><i class="fa-solid fa-minus" style="font-size: 10px;"></i></button>
+                                <button type="button" class="cni-btn" id="ef-maxUp" style="width: 26px; height: 26px;"><i class="fa-solid fa-plus" style="font-size: 10px;"></i></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="ef-netErrorText" style="color: #d9534f; font-size: 11px; font-weight: 800; margin-top: 5px; display: none;">
+                        <i class="fa-solid fa-triangle-exclamation"></i> <span>Hata mesajı</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="justify-content: space-between; border-bottom-left-radius: 14px; border-bottom-right-radius: 14px;">
+                <button class="cancel-note-btn" id="clearExamFilterBtn" style="color: #d9534f; border-color: #ffc2c2;">Filtreleri Temizle</button>
+                <button class="save-note-btn" id="applyExamFilterBtn" style="background-color: #007bff;">Uygula</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="examSortModal" class="custom-modal" style="z-index: 3500;">
+        <div class="custom-modal-content" style="max-width: 400px; overflow: visible !important; border-radius: 14px;">
+            <div class="modal-header" style="border-top-left-radius: 14px; border-top-right-radius: 14px;">
+                <h3><i class="fa-solid fa-arrow-down-a-z" style="color:#007bff; margin-right:8px;"></i> Denemeleri Sırala</h3>
+                <span class="close-modal-btn" id="closeExamSortModalBtn">&times;</span>
+            </div>
+            <div class="modal-body" style="gap: 15px; overflow: visible !important;">
+                <div class="input-group">
+                    <label>Sıralama Kriteri</label>
+                    <div class="task-custom-select">
+                        <div class="tcs-trigger"><span class="tcs-text">Tarih (En Yeniden Eskiye)</span> <i class="fa-solid fa-chevron-down"></i></div>
+                        <div class="tcs-options">
+                            <div class="tcs-option selected" data-value="date-desc">Tarih (En Yeniden Eskiye)</div>
+                            <div class="tcs-option" data-value="date-asc">Tarih (En Eskiden Yeniye)</div>
+                            <div class="tcs-option" data-value="net-desc">Net (Yüksekten Düşüğe)</div>
+                            <div class="tcs-option" data-value="net-asc">Net (Düşükten Yükseğe)</div>
+                        </div>
+                        <input type="hidden" id="es-criteria" value="date-desc">
+                    </div>
+                </div>
+                <div class="input-group" id="es-subjectGroup" style="display: none;">
+                    <label>Hangi Nete Göre Sıralansın?</label>
+                    <div class="task-custom-select">
+                        <div class="tcs-trigger"><span class="tcs-text" id="es-subject-text">Genel (Toplam Net)</span> <i class="fa-solid fa-chevron-down"></i></div>
+                        <div class="tcs-options" id="es-subject-options">
+                            </div>
+                        <input type="hidden" id="es-subject" value="total">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="border-bottom-left-radius: 14px; border-bottom-right-radius: 14px;">
+                <button class="cancel-note-btn" id="cancelExamSortBtn">İptal</button>
+                <button class="save-note-btn" id="applyExamSortBtn" style="background-color: #007bff;">Uygula</button>
+            </div>
+        </div>
+    </div>
+
 
     <script type="module">
         // =================================================================
@@ -3548,13 +3841,14 @@
         updateCountdown();
 
         // =================================================================
-        // 3. TAKVİM MOTORU
+        // 3. TAKVİM MOTORU (İNTERAKTİF)
         // =================================================================
         const monthYearText = document.getElementById("month-year");
         const calendarDays = document.getElementById("calendar-days");
         let currentDate = new Date(); 
 
         function renderCalendar() {
+            if(!monthYearText || !calendarDays) return;
             const year = currentDate.getFullYear();
             const month = currentDate.getMonth();
 
@@ -3573,6 +3867,7 @@
 
             const today = new Date();
             for (let i = 1; i <= daysInMonth; i++) {
+                // Sadece gerçek "Bugün" olan güne mavi yuvarlak (today) sınıfı ekle
                 if (i === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
                     daysHtml += `<div class="day-box today">${i}</div>`;
                 } else {
@@ -3581,6 +3876,19 @@
             }
             calendarDays.innerHTML = daysHtml;
         }
+
+        // İleri - Geri Buton Dinleyicileri
+        document.getElementById('calPrevMonthBtn')?.addEventListener('click', () => {
+            currentDate.setMonth(currentDate.getMonth() - 1);
+            renderCalendar();
+        });
+
+        document.getElementById('calNextMonthBtn')?.addEventListener('click', () => {
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            renderCalendar();
+        });
+
+        // Sayfa ilk yüklendiğinde takvimi çiz
         renderCalendar();
 
         // =================================================================
@@ -3754,7 +4062,7 @@
 
         // --- FIREBASE: KULLANICI GİRİŞ DURUMUNU DİNLE ---
         onAuthStateChanged(auth, async (user) => {
-            const minLoadTime = new Promise(resolve => setTimeout(resolve, 1500)); 
+            const minLoadTime = new Promise(resolve => setTimeout(resolve, 2500));
             if (user) {
                 currentUserUid = user.uid;
                 try {
@@ -5330,30 +5638,53 @@
             return `${minutes} Dk`;
         }
 
-        // --- ANA EKRAN: BUGÜNÜN GÖREVLERİ SEKME MOTORU ---
+        // --- ANA EKRAN: BUGÜNÜN GÖREVLERİ SEKME MOTORU VE ZAMAN YOLCULUĞU ---
         let currentTodayTab = 'kalanlar';
+        let currentDashboardDate = new Date(); // YENİ: Dashboard'un o an hangi günü gösterdiğini hafızada tutar
 
         document.querySelectorAll('.today-tab-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 document.querySelectorAll('.today-tab-btn').forEach(b => b.classList.remove('active'));
                 e.target.classList.add('active');
                 currentTodayTab = e.target.getAttribute('data-tab');
-                renderTodayTasks();
+                window.renderTodayTasks();
             });
         });
 
-        // --- ANA EKRAN: BUGÜNÜN GÖREVLERİNİ ÇİZME MOTORU ---
+        // İleri - Geri Buton Dinleyicileri (Gün Değiştirme)
+        document.getElementById('prevDashDayBtn')?.addEventListener('click', () => {
+            currentDashboardDate.setDate(currentDashboardDate.getDate() - 1);
+            window.renderTodayTasks();
+        });
+
+        document.getElementById('nextDashDayBtn')?.addEventListener('click', () => {
+            currentDashboardDate.setDate(currentDashboardDate.getDate() + 1);
+            window.renderTodayTasks();
+        });
+
+        // --- ANA EKRAN: GÖREVLERİ ÇİZME MOTORU ---
         window.renderTodayTasks = function() {
             const todayList = document.getElementById('todayTasksList');
             const totalTimeDiv = document.getElementById('todayTotalTime');
             if (!todayList || !totalTimeDiv) return;
 
-            const today = new Date();
-            const dateKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+            const targetDate = currentDashboardDate;
+            const dateKey = `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, '0')}-${String(targetDate.getDate()).padStart(2, '0')}`;
+            
+            // Başlığı Dinamik Güncelle (Bugün mü yoksa başka bir gün mü?)
+            const dashTitle = document.getElementById('dashboardScheduleTitle');
+            if (dashTitle) {
+                const realToday = new Date();
+                if (targetDate.getDate() === realToday.getDate() && targetDate.getMonth() === realToday.getMonth() && targetDate.getFullYear() === realToday.getFullYear()) {
+                    dashTitle.innerText = "Bugünün Programı";
+                } else {
+                    dashTitle.innerText = `${targetDate.getDate()} ${trMonthsNames[targetDate.getMonth()]}`;
+                }
+            }
             
             const allTasks = userTasks[dateKey] || [];
             
-            // Tüm günün toplam hedeflenen süresini hesapla (Altta sabit kalacak)
+            // Tüm günün toplam hedeflenen süresini hesapla
             let totalMins = 0;
             allTasks.forEach(task => totalMins += parseInt(task.duration));
             
@@ -5366,7 +5697,7 @@
                 totalTimeDiv.style.color = "#aaa";
                 totalTimeDiv.style.backgroundColor = "#fdfdfd";
             } else {
-                totalTimeDiv.innerHTML = `<i class="fa-solid fa-stopwatch" style="color:#007bff;"></i> Bugün Toplam: ${timeStr}`;
+                totalTimeDiv.innerHTML = `<i class="fa-solid fa-stopwatch" style="color:#007bff;"></i> Toplam: ${timeStr}`;
                 totalTimeDiv.style.color = "";
                 totalTimeDiv.style.backgroundColor = "";
             }
@@ -5407,7 +5738,8 @@
                         <div class="task-card-header" style="align-items: center; flex-wrap: wrap; gap: 5px;">
                             <span class="task-card-subject">${task.subject}</span>
                             <div style="display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 800;">
-                                <span style="color: #007bff;"><i class="fa-solid fa-layer-group" style="font-size: 12px;"></i> ${task.taskType}</span>
+                                <span class="task-card-type" style="color: #007bff;"><i class="fa-solid fa-layer-group" style="font-size: 12px;"></i> ${task.taskType}</span>
+                                ${task.questionCount ? `<span style="color: #fd7e14;"><i class="fa-solid fa-clipboard-question" style="font-size: 12px;"></i> ${task.questionCount} Soru</span>` : ''}
                                 <span style="color: #888;"><i class="fa-solid fa-clock" style="font-size: 12px;"></i> ${task.duration} dk</span>
                                 <span class="task-card-badge ${badgeClass}">${displayExamType}</span>
                             </div>
@@ -5447,6 +5779,13 @@
                     let displayExamType = task.examType.toUpperCase();
                     if(task.examType === 'genel') displayExamType = "GENEL";
 
+                    // YENİ: Haftalık planlayıcıda yerden tasarruf etmek için kısa görev isimleri
+                    let shortTaskType = task.taskType;
+                    if (task.taskType === 'Konu Anlatımı') shortTaskType = 'Konu';
+                    else if (task.taskType === 'Test Çözümü') shortTaskType = 'Test';
+                    else if (task.taskType === 'Deneme Çözümü') shortTaskType = 'Deneme';
+                    else if (task.taskType === 'Genel Tekrar') shortTaskType = 'Tekrar';
+
                     // GÖREV KARTI RENK VE SEÇİM EFEKTLERİ
                     let taskCardExtraClass = "";
                     
@@ -5465,6 +5804,7 @@
                     const draggableAttr = appMode === 'NORMAL' ? 'draggable="true"' : '';
                     const dragEvents = appMode === 'NORMAL' ? `ondragstart="window.startTaskDrag(event, '${dateKey}', ${task.id})" ondragend="window.endTaskDrag(event)"` : '';
 
+                    // --- HAFTALIK PLANLAYICI ÖZEL GÖREV KARTI TASARIMI ---
                     tasksHtml += `
                         <div class="planner-task-card${taskCardExtraClass}" 
                              ${draggableAttr} 
@@ -5472,15 +5812,22 @@
                              onclick="window.handleTaskClick(event, '${dateKey}', ${task.id})" 
                              style="cursor: ${appMode === 'NORMAL' ? 'grab' : 'pointer'};" 
                              data-custom-title="Görev">
-                            <div class="task-card-header" style="align-items: center; flex-wrap: wrap; gap: 5px;">
-                                <span class="task-card-subject">${task.subject}</span>
-                                <div style="display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 800;">
-                                    <span style="color: #007bff;"><i class="fa-solid fa-layer-group" style="font-size: 12px;"></i> ${task.taskType}</span>
-                                    <span style="color: #888;"><i class="fa-solid fa-clock" style="font-size: 12px;"></i> ${task.duration} dk</span>
-                                    <span class="task-card-badge ${badgeClass}">${displayExamType}</span>
-                                </div>
+                            
+                            <div class="task-card-header" style="align-items: flex-start; margin-bottom: 4px;">
+                                <span class="task-card-subject" style="flex: 1;">${task.subject}</span>
+                                <span class="task-card-badge ${badgeClass}" style="margin-left: 5px;">${displayExamType}</span>
                             </div>
-                            <div class="task-card-desc" style="margin-top: 2px;">${task.desc}</div>
+                            
+                            <div class="task-card-desc" style="margin-bottom: 6px;">${task.desc}</div>
+                            
+                            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed #eef2f5; padding-top: 6px; font-size: 10.5px; font-weight: 800; flex-wrap: wrap; gap: 5px;">
+                                <div style="display: flex; gap: 8px;">
+                                    <span class="task-card-type" style="color: #007bff;"><i class="fa-solid fa-layer-group"></i> ${shortTaskType}</span>
+                                    ${task.questionCount ? `<span style="color: #fd7e14;"><i class="fa-solid fa-clipboard-question"></i> ${task.questionCount} Soru</span>` : ''}
+                                </div>
+                                <span style="color: #888;"><i class="fa-solid fa-clock"></i> ${task.duration} dk</span>
+                            </div>
+                            
                         </div>
                     `;
                 });
@@ -5615,6 +5962,18 @@
                 if(hiddenInput.id === 'taskTrack') {
                     updateTaskSubjectDropdown();
                 }
+                // YENİ: Görev türü değiştiğinde Soru Sayısı kutusunu göster/gizle
+                if (hiddenInput.id === 'taskType') {
+                    const qcGroup = document.getElementById('taskQuestionCountGroup');
+                    if (value === 'Test Çözümü' || value === 'Deneme Çözümü' || value === 'Genel Deneme') {
+                        if (qcGroup) qcGroup.style.display = 'flex';
+                    } else {
+                        if (qcGroup) {
+                            qcGroup.style.display = 'none';
+                            document.getElementById('taskQuestionCount').value = '';
+                        }
+                    }
+                }
                 if(hiddenInput.id === 'taskSubject') {
                     checkGenelDenemeLock();
                 }
@@ -5730,11 +6089,13 @@
             const taskTypeSelect = document.getElementById('tcs-taskType');
             const taskTypeText = taskTypeSelect.querySelector('.tcs-text');
             const taskTypeOptions = document.getElementById('taskTypeOptions');
+            const qcGroup = document.getElementById('taskQuestionCountGroup'); // YENİ
 
             if(subject === 'Genel Deneme') {
                 taskTypeInput.value = 'Genel Deneme';
                 taskTypeText.innerText = 'Genel Deneme';
                 taskTypeSelect.classList.add('disabled');
+                if (qcGroup) qcGroup.style.display = 'flex'; // YENİ
             } else {
                 taskTypeSelect.classList.remove('disabled');
                 if(taskTypeInput.value === 'Genel Deneme') {
@@ -5744,6 +6105,10 @@
                         if(opt.getAttribute('data-value') === 'Konu Anlatımı') opt.classList.add('selected');
                         else opt.classList.remove('selected');
                     });
+                    if (qcGroup) { // YENİ
+                        qcGroup.style.display = 'none';
+                        document.getElementById('taskQuestionCount').value = '';
+                    }
                 }
             }
         }
@@ -5774,6 +6139,16 @@
             } else if (selectId === "tcs-subject") {
                 textDisplay.style.color = "";
             }
+
+            // Düzenleme modunda kutuyu göster
+            if (selectId === 'tcs-taskType') {
+                const qcGroup = document.getElementById('taskQuestionCountGroup');
+                if (value === 'Test Çözümü' || value === 'Deneme Çözümü' || value === 'Genel Deneme') {
+                    if (qcGroup) qcGroup.style.display = 'flex';
+                } else {
+                    if (qcGroup) qcGroup.style.display = 'none';
+                }
+            }
         }
 
         window.viewTaskDetails = function(dateKey, taskId) {
@@ -5793,6 +6168,38 @@
             document.getElementById('viewTaskType').innerHTML = `<i class="fa-solid fa-layer-group"></i> ${task.taskType}`;
             document.getElementById('viewTaskDuration').innerHTML = `<i class="fa-solid fa-clock"></i> ${task.duration} dk`;
             document.getElementById('viewTaskDesc').innerText = task.desc;
+
+            const qcSpan = document.getElementById('viewTaskQuestionCount');
+            if (task.questionCount) {
+                qcSpan.innerHTML = `<i class="fa-solid fa-clipboard-question"></i> ${task.questionCount} Soru`;
+                qcSpan.style.display = 'inline-block';
+            } else {
+                qcSpan.style.display = 'none';
+            }
+            
+            // YENİ: GÖREVE EKLENMİŞ VİDEOLAR VARSA LİSTELE
+            const videoListContainer = document.getElementById('viewTaskVideoList');
+            const vtvList = document.getElementById('vtv-list');
+            
+            if (task.taskVideos && task.taskVideos.length > 0) {
+                videoListContainer.style.display = 'block';
+                vtvList.innerHTML = '';
+                task.taskVideos.forEach((v, index) => {
+                    vtvList.innerHTML += `
+                        <div style="display:flex; gap:10px; align-items:center; background:#fff; border:1px solid #eef2f5; padding:8px 12px; border-radius:8px;">
+                            <div style="font-weight: 900; color: #007bff; width: 20px; font-size: 13px; text-align: center;">${index + 1}</div>
+                            <img src="${v.thumb}" style="width: 50px; border-radius: 4px;">
+                            <div style="flex:1; overflow:hidden;">
+                                <div style="font-size: 12px; font-weight: 700; color: #333; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" data-custom-title="${v.title}">${v.title}</div>
+                                <div style="font-size: 10px; color: #888; font-weight: 800; margin-top:3px;"><i class="fa-solid fa-clock"></i> ${v.duration}</div>
+                            </div>
+                        </div>
+                    `;
+                });
+            } else {
+                videoListContainer.style.display = 'none';
+                vtvList.innerHTML = '';
+            }
 
             // --- EKLENECEK YENİ KISIM: Tamamla Butonu Kontrolü ---
             const completeBtn = document.getElementById('completeTaskBtn');
@@ -5836,24 +6243,36 @@
             
             updateTaskSubjectDropdown();
             
+            taskDesc.value = currentViewingTask.desc;
+            taskDuration.value = currentViewingTask.duration;
+
             setTimeout(() => {
                 setTaskCustomSelectValue('tcs-subject', currentViewingTask.subject);
                 checkGenelDenemeLock();
                 if(currentViewingTask.subject !== 'Genel Deneme') {
                     setTaskCustomSelectValue('tcs-taskType', currentViewingTask.taskType);
                 }
+
+                // Soru sayısını kutuya aktar (İçeri alındı çünkü taskType güncellemesi kutuyu gizleyebiliyordu)
+                const qcGroup = document.getElementById('taskQuestionCountGroup');
+                if (currentViewingTask.taskType === 'Test Çözümü' || currentViewingTask.taskType === 'Deneme Çözümü' || currentViewingTask.taskType === 'Genel Deneme') {
+                    qcGroup.style.display = 'flex';
+                    document.getElementById('taskQuestionCount').value = currentViewingTask.questionCount || '';
+                } else {
+                    qcGroup.style.display = 'none';
+                    document.getElementById('taskQuestionCount').value = '';
+                }
             }, 10);
 
-            taskDesc.value = currentViewingTask.desc;
-            taskDuration.value = currentViewingTask.duration;
-
+            // Değişiklik Dedektifine Soru Sayısını da Öğrettik
             originalTaskEditState = {
                 examType: currentViewingTask.examType,
                 track: currentViewingTask.track || 'sayisal',
                 subject: currentViewingTask.subject,
                 taskType: currentViewingTask.taskType,
                 desc: currentViewingTask.desc,
-                duration: currentViewingTask.duration.toString()
+                duration: currentViewingTask.duration.toString(),
+                questionCount: currentViewingTask.questionCount ? currentViewingTask.questionCount.toString() : ''
             };
 
             addTaskModal.style.display = 'flex';
@@ -5887,10 +6306,33 @@
             if (taskTypeInput.value !== originalTaskEditState.taskType) return true;
             if (taskDesc.value.trim() !== originalTaskEditState.desc) return true;
             if (taskDuration.value !== originalTaskEditState.duration) return true;
+            
+            // YENİ: Soru sayısındaki değişimi yakala!
+            const currentQc = document.getElementById('taskQuestionCount').value;
+            if (currentQc !== originalTaskEditState.questionCount) return true;
+
             return false;
         }
 
         function closeTaskModalAndClear() {
+            // YENİ EKLENEN KISIM: Eğer yeni bir görev eklemekten VAZGEÇİLİRSE (İptal vs)
+            // İçine video eklendiyse, o videoları sahipsiz bırakmamak için etiketleri geri alıyoruz!
+            if (!editingTaskId && typeof currentTaskVideos !== 'undefined' && currentTaskVideos.length > 0) {
+                let playlistsToUpdate = new Set();
+                currentTaskVideos.forEach(v => {
+                    const pl = savedPlaylists.find(p => p.id.toString() === v.plId.toString());
+                    if (pl && pl.videos && pl.videos[v.index]) {
+                        pl.videos[v.index].isPlanned = false;
+                        playlistsToUpdate.add(pl);
+                    }
+                });
+                if (currentUserUid) {
+                    playlistsToUpdate.forEach(pl => {
+                        setDoc(doc(db, "users", currentUserUid, "userPlaylists", pl.id.toString()), pl, { merge: true }).catch(e=>{});
+                    });
+                }
+            }
+
             addTaskModal.style.display = 'none';
             const savedEditId = editingTaskId;
             const savedDate = selectedDateForTask;
@@ -5931,6 +6373,22 @@
                 } else {
                     taskDuration.value = 1; // Süre 1'in altına inemez
                 }
+            });
+        }
+
+        // YENİ: Soru Sayısı artır/azalt butonları
+        const qcUpBtn = document.getElementById('qcUpBtn');
+        const qcDownBtn = document.getElementById('qcDownBtn');
+        const taskQuestionCount = document.getElementById('taskQuestionCount');
+        
+        if (qcUpBtn && qcDownBtn) {
+            qcUpBtn.addEventListener('click', () => {
+                let currentVal = parseInt(taskQuestionCount.value) || 0;
+                taskQuestionCount.value = currentVal + 1;
+            });
+            qcDownBtn.addEventListener('click', () => {
+                let currentVal = parseInt(taskQuestionCount.value) || 0;
+                if (currentVal > 0) taskQuestionCount.value = currentVal - 1;
             });
         }
 
@@ -5977,15 +6435,23 @@
             saveBtn.innerText = "Kaydediliyor...";
             saveBtn.disabled = true;
 
+            const taskTypeVal = taskTypeInput.value;
+            const isQcVisible = taskTypeVal === 'Test Çözümü' || taskTypeVal === 'Deneme Çözümü' || taskTypeVal === 'Genel Deneme';
+            
+            // Kutuda yazan sayıyı al
+            const finalQuestionCount = isQcVisible ? (parseInt(document.getElementById('taskQuestionCount').value) || null) : null;
+
             const newTask = {
                 id: editingTaskId ? editingTaskId : Date.now(),
                 examType: taskExamTypeInput.value,
                 track: taskExamTypeInput.value === 'ayt' ? taskTrackInput.value : null,
                 subject: taskSubjectInput.value,
-                taskType: taskTypeInput.value,
+                taskType: taskTypeVal,
+                questionCount: finalQuestionCount, // <-- YENİ VEYA DÜZENLENMİŞ RAKAM BURADA OLMALI
                 desc: taskDesc.value.trim(),
                 duration: parseInt(taskDuration.value),
-                dateKey: selectedDateForTask 
+                dateKey: selectedDateForTask,
+                taskVideos: currentTaskVideos
             };
 
             try {
@@ -6285,10 +6751,32 @@
                         const taskIndex = userTasks[dateKey].findIndex(t => t.id === taskId);
                         if(taskIndex !== -1) {
                             const currentStatus = userTasks[dateKey][taskIndex].isCompleted || false;
-                            const updatedTask = { ...userTasks[dateKey][taskIndex], isCompleted: !currentStatus };
+                            const newStatus = !currentStatus; // Tersine çevir
+                            const updatedTask = { ...userTasks[dateKey][taskIndex], isCompleted: newStatus };
+                            
+                            // YENİ: Göreve ekli videoları bul ve İzlendi durumunu otomatik senkronize et
+                            let playlistsToUpdate = new Set();
+                            if (updatedTask.taskVideos && updatedTask.taskVideos.length > 0) {
+                                updatedTask.taskVideos.forEach(v => {
+                                    const pl = savedPlaylists.find(p => p.id.toString() === v.plId.toString());
+                                    if (pl && pl.videos && pl.videos[v.index]) {
+                                        pl.videos[v.index].isWatched = newStatus; // Görev tıklandıysa izlendi, kaldırıldıysa geri alındı
+                                        playlistsToUpdate.add(pl);
+                                    }
+                                });
+                            }
+                            
+                            // Firebase'e Görevi Kaydet
                             await setDoc(doc(db, "users", currentUserUid, "userTasks", taskId.toString()), updatedTask);
                             userTasks[dateKey][taskIndex] = updatedTask;
+                            
+                            // Playlistleri Firebase'e ve Arayüze Kaydet
+                            for (let pl of playlistsToUpdate) {
+                                await setDoc(doc(db, "users", currentUserUid, "userPlaylists", pl.id.toString()), pl, { merge: true });
+                            }
+
                             if(typeof updateWeeklyPlannerView === 'function') updateWeeklyPlannerView();
+                            if(typeof window.renderPlaylists === 'function') window.renderPlaylists(); // Yüzdelikler hemen güncellensin!
                         }
                     } catch (error) { console.error(error); } finally {
                         btnYesComplete.innerHTML = origText;
@@ -6311,16 +6799,38 @@
                 const targetStatus = action === 'uncomplete' ? false : true;
                 
                 try {
+                    let playlistsToUpdate = new Set();
+
                     for (const taskKey of tasksToComplete) {
                         const [dKey, tIdStr] = taskKey.split('||');
                         const tId = parseInt(tIdStr);
                         const idx = userTasks[dKey].findIndex(t => t.id === tId);
+                        
                         if(idx !== -1) {
                             const updated = { ...userTasks[dKey][idx], isCompleted: targetStatus };
+                            
+                            // YENİ: Toplu tamamlamada videoları bul ve güncelle
+                            if (updated.taskVideos && updated.taskVideos.length > 0) {
+                                updated.taskVideos.forEach(v => {
+                                    const pl = savedPlaylists.find(p => p.id.toString() === v.plId.toString());
+                                    if (pl && pl.videos && pl.videos[v.index]) {
+                                        pl.videos[v.index].isWatched = targetStatus;
+                                        playlistsToUpdate.add(pl);
+                                    }
+                                });
+                            }
+
                             await setDoc(doc(db, "users", currentUserUid, "userTasks", tId.toString()), updated);
                             userTasks[dKey][idx] = updated;
                         }
                     }
+                    
+                    // Toplu Playlist Firebase Güncellemesi
+                    for (let pl of playlistsToUpdate) {
+                        await setDoc(doc(db, "users", currentUserUid, "userPlaylists", pl.id.toString()), pl, { merge: true });
+                    }
+
+                    if(typeof window.renderPlaylists === 'function') window.renderPlaylists();
                     resetAppModes(); 
                 } catch (error) { console.error(error); resetAppModes(); } finally { if(cmpBtn) cmpBtn.style.pointerEvents = 'auto'; }
             });
@@ -6361,11 +6871,34 @@
                 if(rmvBtn) rmvBtn.style.pointerEvents = 'none';
                 
                 try {
+                    let playlistsToUpdate = new Set(); // YENİ: Güncellenecek playlistleri hafızada tutar
+
                     for (const taskKey of tasksToDelete) {
                         const [dKey, tIdStr] = taskKey.split('||');
+                        const tId = parseInt(tIdStr);
+                        
+                        // YENİ: Görevin içindeki videoları bul ve plandan çıkar ("Plana Eklendi" yazısı gitsin)
+                        const taskObj = userTasks[dKey].find(t => t.id === tId);
+                        if (taskObj && taskObj.taskVideos) {
+                            taskObj.taskVideos.forEach(v => {
+                                const pl = savedPlaylists.find(p => p.id.toString() === v.plId.toString());
+                                if (pl && pl.videos && pl.videos[v.index]) {
+                                    pl.videos[v.index].isPlanned = false;
+                                    playlistsToUpdate.add(pl);
+                                }
+                            });
+                        }
+
+                        // Görevi sil
                         await deleteDoc(doc(db, "users", currentUserUid, "userTasks", tIdStr));
-                        userTasks[dKey] = userTasks[dKey].filter(t => t.id !== parseInt(tIdStr));
+                        userTasks[dKey] = userTasks[dKey].filter(t => t.id !== tId);
                     }
+
+                    // YENİ: Temizlenen playlistleri Firebase'e tek seferde kaydet
+                    for (let pl of playlistsToUpdate) {
+                        await setDoc(doc(db, "users", currentUserUid, "userPlaylists", pl.id.toString()), pl, { merge: true });
+                    }
+
                     resetAppModes(); 
                 } catch (error) { console.error(error); resetAppModes(); } finally { if(rmvBtn) rmvBtn.style.pointerEvents = 'auto'; }
             });
@@ -6393,6 +6926,24 @@
                     const origText = delBtn.innerHTML; 
                     delBtn.innerHTML = "Siliniyor...";
                     try {
+                        // YENİ: Görev silinirken içindeki videoların "Plana Eklendi" etiketlerini temizle
+                        const taskObj = userTasks[dKey].find(t => t.id === tId);
+                        if (taskObj && taskObj.taskVideos) {
+                            let playlistsToUpdate = new Set();
+                            taskObj.taskVideos.forEach(v => {
+                                const pl = savedPlaylists.find(p => p.id.toString() === v.plId.toString());
+                                if (pl && pl.videos && pl.videos[v.index]) {
+                                    pl.videos[v.index].isPlanned = false;
+                                    playlistsToUpdate.add(pl);
+                                }
+                            });
+                            // Güncellenen playlistleri Firebase'e kaydet
+                            for (let pl of playlistsToUpdate) {
+                                await setDoc(doc(db, "users", currentUserUid, "userPlaylists", pl.id.toString()), pl, { merge: true });
+                            }
+                        }
+
+                        // Görevi asıl silme işlemi
                         await deleteDoc(doc(db, "users", currentUserUid, "userTasks", tId.toString()));
                         userTasks[dKey] = userTasks[dKey].filter(t => t.id !== tId);
                         
@@ -6617,7 +7168,7 @@
             
             if(pl.videos && pl.videos.length > 0) {
                 pl.videos.forEach((v, index) => {
-                    originalPlaylistProgressState.push(!!v.isWatched); // Başlangıç durumunu kaydet
+                    originalPlaylistProgressState.push(!!v.isWatched); 
                     
                     const sec = timeStringToSeconds(v.duration);
                     totalSeconds += sec;
@@ -6626,12 +7177,18 @@
                     const isChecked = v.isWatched ? 'checked' : '';
                     const rowOpacity = v.isWatched ? '0.5' : '1';
                     const textDeco = v.isWatched ? 'line-through' : 'none';
+                    
+                    // YENİ EKLENEN KISIM: Plana Eklendi Etiketi (Eğer videonun görevi silinmediyse burada gözükür)
+                    const plannedBadge = v.isPlanned ? '<span style="color:#17a2b8; font-size:10px; font-weight:bold; background: #e0f7fa; padding: 2px 6px; border-radius:4px; margin-left: 8px; display: inline-block; transform: translateY(-2px);"><i class="fa-solid fa-calendar-plus"></i> Plana Eklendi</span>' : '';
 
                     tbody.innerHTML += `
                         <tr style="opacity: ${rowOpacity}; transition: all 0.3s ease;">
                             <td style="font-weight: 800; color: #007bff; text-align: center;">${index + 1}</td>
                             <td><img src="${v.thumb}" style="width: 70px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"></td>
-                            <td class="vid-title" style="line-height: 1.4; color: #333; font-weight: 600; text-decoration: ${textDeco};">${v.title}</td>
+                            <td style="line-height: 1.4; color: #333; font-weight: 600;">
+                                <span class="vid-title" style="text-decoration: ${textDeco};">${v.title}</span>
+                                ${plannedBadge}
+                            </td>
                             <td style="color: #888; font-weight: 800;"><i class="fa-solid fa-clock"></i> ${v.duration}</td>
                             <td style="text-align: center;">
                                 <input type="checkbox" class="video-watched-cb" data-index="${index}" ${isChecked} 
@@ -6889,15 +7446,14 @@
                     return;
                 }
 
-                // İsim kutusunu kontrol et
-                const titleInput = document.getElementById('playlistCustomTitleInput');
+                // KUTUYU YEPYENİ ID İLE ÇEKİYORUZ (ESKİ HAYALET KUTULARI ENGELLEMEK İÇİN)
+                const titleInput = document.getElementById('yeniGercekIsimKutusu');
                 const customTitleVal = titleInput.value.trim();
                 
                 if (!customTitleVal) {
                     titleInput.style.borderColor = '#d9534f'; // Boşsa kutuyu kırmızı yap
                     setTimeout(() => titleInput.style.borderColor = '#dce4ec', 2000);
                     
-                    // YENİ: Tarayıcı alert'ü yerine kendi şık tasarımımızı kullanıyoruz
                     document.getElementById('customAlertMessage').innerText = "Lütfen playliste isim veriniz.";
                     document.getElementById('customAlertModal').style.display = 'flex';
                     return; // İsim yoksa kaydetmeyi durdur
@@ -6942,7 +7498,7 @@
         // YENİ PLAYLIST EKLERKEN KUTUYU SIFIRLAMA
         if(addNewPlaylistBtn) {
             addNewPlaylistBtn.addEventListener('click', () => {
-                const titleInput = document.getElementById('playlistCustomTitleInput');
+                const titleInput = document.getElementById('yeniGercekIsimKutusu');
                 if(titleInput) titleInput.value = '';
             });
         }
@@ -7008,6 +7564,925 @@
                 saveBtn.disabled = false;
             }
         });
+
+        // =================================================================
+        // --- YOUTUBE PLAYLISTTEN GÖREV SEÇME MOTORU ---
+        // =================================================================
+        
+        // =================================================================
+        // --- ÇOKLU VİDEO SEÇİMİ, HIZ MATEMATİĞİ VE "PLANA EKLENDİ" MOTORU ---
+        // =================================================================
+        let currentTaskVideos = []; 
+        let currentTaskSpeed = 1;
+        let currentSelectingPlaylistId = null;
+        let selectedVideosForTaskIndices = new Set();
+        
+        // Hız seçici animasyonları ve dinleyicisi
+        document.querySelectorAll('.speed-opt').forEach(opt => {
+            opt.addEventListener('click', (e) => {
+                document.querySelectorAll('.speed-opt').forEach(btn => btn.classList.remove('active'));
+                e.target.classList.add('active');
+                currentTaskSpeed = parseFloat(e.target.getAttribute('data-val'));
+                window.renderTaskVideoSummary(); // Hız değişince matematiği anında baştan yap!
+            });
+        });
+
+        // 1. Açılır menüleri dinle ve Konu Anlatımı seçildiğinde butonu göster
+        document.addEventListener('click', function(e) {
+            const option = e.target.closest('.tcs-option');
+            if (option) {
+                const taskTypeContainer = option.closest('#tcs-taskType');
+                if (taskTypeContainer) {
+                    const value = option.getAttribute('data-value');
+                    const btn = document.getElementById('selectFromPlaylistBtn');
+                    if (btn) btn.style.display = value === 'Konu Anlatımı' ? 'flex' : 'none';
+                }
+                const subjectContainer = option.closest('#tcs-subject') || option.closest('#tcs-track');
+                if(subjectContainer) {
+                    setTimeout(() => {
+                        const taskTypeVal = document.getElementById('taskType').value;
+                        const btn = document.getElementById('selectFromPlaylistBtn');
+                        if (btn) btn.style.display = taskTypeVal === 'Konu Anlatımı' ? 'flex' : 'none';
+                    }, 50);
+                }
+            }
+        });
+
+        // Kutu Açıldığında Verileri Sıfırlama
+        const originalOpenTaskModal = window.openTaskModalForDate;
+        window.openTaskModalForDate = function(dateStr) {
+            if(originalOpenTaskModal) originalOpenTaskModal(dateStr);
+            currentTaskVideos = [];
+            currentTaskSpeed = 1;
+            document.querySelectorAll('.speed-opt').forEach(btn => btn.classList.remove('active'));
+            document.querySelector('.speed-opt[data-val="1"]')?.classList.add('active');
+            window.renderTaskVideoSummary();
+            
+            const btn = document.getElementById('selectFromPlaylistBtn');
+            if(btn) btn.style.display = 'flex';
+        };
+
+        const originalViewTaskDetails = window.viewTaskDetails;
+        window.viewTaskDetails = function(dateKey, taskId) {
+            if(originalViewTaskDetails) originalViewTaskDetails(dateKey, taskId);
+            
+            // Edit modunda önceden eklenmiş videoları geri yükle
+            if (currentViewingTask && currentViewingTask.taskVideos) {
+                currentTaskVideos = [...currentViewingTask.taskVideos];
+            } else {
+                currentTaskVideos = [];
+            }
+            currentTaskSpeed = 1;
+            document.querySelectorAll('.speed-opt').forEach(btn => btn.classList.remove('active'));
+            document.querySelector('.speed-opt[data-val="1"]')?.classList.add('active');
+            window.renderTaskVideoSummary();
+            
+            const btn = document.getElementById('selectFromPlaylistBtn');
+            if(btn) btn.style.display = document.getElementById('taskType').value === 'Konu Anlatımı' ? 'flex' : 'none';
+        };
+
+        // Seç Butonu Tıklanması
+        const selectFromPlaylistBtn = document.getElementById('selectFromPlaylistBtn');
+        if (selectFromPlaylistBtn) {
+            selectFromPlaylistBtn.addEventListener('click', () => {
+                const subject = document.getElementById('taskSubject').value;
+                document.getElementById('spm-subject').innerText = subject;
+                const spmBody = document.getElementById('spm-body');
+                spmBody.innerHTML = '';
+                
+                const mainPlaylists = savedPlaylists.filter(p => p.isMain && p.subject === subject);
+                
+                if(mainPlaylists.length === 0) {
+                    spmBody.innerHTML = `
+                        <div style="text-align:center; padding: 30px; color:#888;">
+                            <i class="fa-solid fa-star" style="font-size:40px; color:#cce5ff; margin-bottom:15px; display:block;"></i>
+                            <b>${subject}</b> dersi için "Ana" olarak işaretlenmiş bir playlist bulunamadı.
+                        </div>`;
+                } else {
+                    mainPlaylists.forEach(pl => {
+                        spmBody.innerHTML += `
+                            <div class="playlist-card" style="display:flex; gap:12px; align-items:center; padding: 12px; border: 1px solid #eef2f5; border-radius: 12px; cursor: pointer; transition: all 0.2s; background: #fff;" 
+                                 onmouseover="this.style.borderColor='#cce5ff'; this.style.transform='translateY(-2px)';" 
+                                 onmouseout="this.style.borderColor='#eef2f5'; this.style.transform='translateY(0)';"
+                                 onclick="window.openVideoSelectionForTask('${pl.id}')">
+                                <div style="position: relative;">
+                                    <img src="${pl.firstVideoThumb}" style="width: 90px; height: 50px; object-fit: cover; border-radius: 6px;">
+                                    <div style="position: absolute; bottom: 4px; right: 4px; background: rgba(0,0,0,0.8); color: white; padding: 2px 4px; border-radius: 4px; font-size: 9px; font-weight: bold;">
+                                        ${pl.videoCount} Video
+                                    </div>
+                                </div>
+                                <div style="flex:1;">
+                                    <div style="font-weight: 800; color: #333; font-size: 13px; line-height: 1.2; margin-bottom: 4px;">${pl.customTitle || pl.subject}</div>
+                                    <div style="font-size: 11px; color: #007bff; font-weight: 700;"><i class="fa-solid fa-stopwatch"></i> ${pl.totalDuration || '?'}</div>
+                                </div>
+                                <i class="fa-solid fa-chevron-right" style="color: #007bff; font-size: 16px; margin-right: 5px;"></i>
+                            </div>
+                        `;
+                    });
+                }
+                document.getElementById('selectPlaylistModal').style.display = 'flex';
+            });
+        }
+
+        // Seçilen playlistin içindeki videoları aç
+        window.openVideoSelectionForTask = function(plId) {
+            const pl = savedPlaylists.find(p => p.id.toString() === plId.toString());
+            if(!pl || !pl.videos) return;
+            
+            currentSelectingPlaylistId = plId;
+            selectedVideosForTaskIndices.clear();
+            
+            // Önceden seçilmişleri hazırla
+            currentTaskVideos.forEach(v => {
+                if(v.plId.toString() === plId.toString()) selectedVideosForTaskIndices.add(v.index);
+            });
+            
+            const svmBody = document.getElementById('svm-body');
+            svmBody.innerHTML = '';
+            
+            pl.videos.forEach((v, index) => {
+                const isSelected = selectedVideosForTaskIndices.has(index);
+                
+                // YENİ: Etiketler ve görsellik (İkisi aynı anda gözükebilir)
+                let badgeHtml = '';
+                if(v.isPlanned) {
+                    badgeHtml += '<span style="color:#17a2b8; font-size:10px; font-weight:bold; background: #e0f7fa; padding: 2px 6px; border-radius:4px; margin-right: 5px;"><i class="fa-solid fa-calendar-plus"></i> Plana Eklendi</span>';
+                }
+                if(v.isWatched) {
+                    badgeHtml += '<span style="color:#28a745; font-size:10px; font-weight:bold; background: #e6f9ed; padding: 2px 6px; border-radius:4px;"><i class="fa-solid fa-check-double"></i> İzlendi</span>';
+                }
+
+                const opacity = v.isWatched ? '0.5' : '1';
+                const textDeco = v.isWatched ? 'text-decoration: line-through;' : '';
+                const bg = isSelected ? '#e6f2ff' : 'transparent';
+                const checked = isSelected ? 'checked' : '';
+                
+                svmBody.innerHTML += `
+                    <div class="video-select-row" style="display:flex; gap:12px; align-items:center; padding: 12px; border-bottom: 1px solid #eef2f5; cursor: pointer; opacity: ${opacity}; background: ${bg}; transition: background 0.2s;" 
+                         onclick="window.toggleVideoSelection(${index}, this)">
+                        <div style="width: 20px; text-align: center;">
+                            <input type="checkbox" class="video-cb" style="pointer-events:none; width: 16px; height: 16px; accent-color: #007bff;" ${checked}>
+                        </div>
+                        <div style="font-weight: 900; color: #007bff; width: 25px; text-align: center; font-size: 14px;">${index + 1}</div>
+                        <img src="${v.thumb}" style="width: 70px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        <div style="flex:1; line-height:1.3;">
+                            <div style="font-size: 13px; font-weight: 700; color: #333; margin-bottom: 5px; ${textDeco}">${v.title}</div>
+                            <div style="display:flex; justify-content:space-between; align-items: center;">
+                                <span style="font-size: 11px; font-weight: 800; color: #888;"><i class="fa-solid fa-clock"></i> ${v.duration}</span>
+                                <div>${badgeHtml}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            document.getElementById('confirmSelectedVideosBtn').innerText = `Seçilenleri Ekle (${selectedVideosForTaskIndices.size})`;
+            document.getElementById('selectPlaylistModal').style.display = 'none';
+            document.getElementById('selectVideoModal').style.display = 'flex';
+        };
+
+        window.toggleVideoSelection = function(index, element) {
+            const cb = element.querySelector('.video-cb');
+            if (selectedVideosForTaskIndices.has(index)) {
+                selectedVideosForTaskIndices.delete(index);
+                cb.checked = false;
+                element.style.backgroundColor = 'transparent';
+            } else {
+                selectedVideosForTaskIndices.add(index);
+                cb.checked = true;
+                element.style.backgroundColor = '#e6f2ff';
+            }
+            document.getElementById('confirmSelectedVideosBtn').innerText = `Seçilenleri Ekle (${selectedVideosForTaskIndices.size})`;
+        };
+
+        // Seçilenleri Göreve Aktar
+        document.getElementById('confirmSelectedVideosBtn')?.addEventListener('click', async () => {
+            const pl = savedPlaylists.find(p => p.id.toString() === currentSelectingPlaylistId.toString());
+            if(!pl) return;
+
+            // Önce bu playlistten daha önce eklenenleri temizle, sonra güncel seçilenleri bas (Çoklu birikme)
+            const oldVideos = currentTaskVideos.filter(v => v.plId.toString() === currentSelectingPlaylistId.toString());
+            currentTaskVideos = currentTaskVideos.filter(v => v.plId.toString() !== currentSelectingPlaylistId.toString());
+
+            selectedVideosForTaskIndices.forEach(idx => {
+                const v = pl.videos[idx];
+                
+                let seconds = 0;
+                if (v.duration) {
+                    const parts = v.duration.split(':').map(Number).reverse();
+                    if (parts[0]) seconds += parts[0];
+                    if (parts[1]) seconds += parts[1] * 60;
+                    if (parts[2]) seconds += parts[2] * 3600;
+                }
+
+                currentTaskVideos.push({
+                    plId: currentSelectingPlaylistId.toString(),
+                    index: idx,
+                    title: v.title,
+                    duration: v.duration,
+                    thumb: v.thumb,
+                    durationSec: seconds,
+                    plTitle: pl.customTitle || pl.subject // <--- BURASI EKLENDİ
+                });
+                pl.videos[idx].isPlanned = true; // "Plana Eklendi" Damgası
+            });
+
+            // Tik'i kaldırılan videolar varsa onların isPlanned durumunu false yap
+            oldVideos.forEach(ov => {
+                if (!selectedVideosForTaskIndices.has(ov.index)) {
+                    if(pl.videos[ov.index]) pl.videos[ov.index].isPlanned = false;
+                }
+            });
+
+            // Firebase'i arkada sessizce güncelle
+            try {
+                if(currentUserUid) await setDoc(doc(db, "users", currentUserUid, "userPlaylists", pl.id.toString()), pl, { merge: true });
+            } catch(e) {}
+
+            window.renderTaskVideoSummary();
+            document.getElementById('selectVideoModal').style.display = 'none';
+        });
+
+        // Ekrana Çizme ve Hız Matematiği
+        window.renderTaskVideoSummary = function() {
+            const summaryBox = document.getElementById('playlistSelectionSummary');
+            const videoListDiv = document.getElementById('pss-video-list');
+            const descInput = document.getElementById('taskDesc');
+            const durInput = document.getElementById('taskDuration');
+
+            if (!summaryBox || !videoListDiv) return;
+
+            if (currentTaskVideos.length === 0) {
+                summaryBox.style.display = 'none';
+                return;
+            }
+
+            summaryBox.style.display = 'block';
+            document.getElementById('pss-text').innerHTML = `<i class="fa-solid fa-list-check"></i> Toplam <b>${currentTaskVideos.length}</b> Video Plana Eklendi`;
+
+            videoListDiv.innerHTML = '';
+            let totalBaseSeconds = 0;
+
+            currentTaskVideos.forEach((v, idx) => {
+                totalBaseSeconds += v.durationSec;
+                videoListDiv.innerHTML += `
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding: 6px 10px; background:#fff; border-radius:6px; border:1px solid #eef2f5;">
+                        <div style="display:flex; align-items:center; gap:10px; overflow:hidden;">
+                            <img src="${v.thumb}" style="width:35px; border-radius:4px;">
+                            <span style="font-size:11px; font-weight:700; white-space:nowrap; text-overflow:ellipsis; overflow:hidden; max-width: 250px;">${v.title}</span>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:12px;">
+                            <span style="font-size:10px; font-weight:800; color:#888;">${v.duration}</span>
+                            <i class="fa-solid fa-xmark" style="color:#d9534f; cursor:pointer; font-size: 14px; padding:2px;" data-custom-title="Kaldır" onclick="window.removeVideoFromTask('${v.plId}', ${v.index})"></i>
+                        </div>
+                    </div>
+                `;
+            });
+
+            // Hız Matematiği
+            const adjustedSeconds = totalBaseSeconds / currentTaskSpeed;
+            let minutes = Math.ceil(adjustedSeconds / 60);
+            if (minutes === 0 && totalBaseSeconds > 0) minutes = 1;
+
+            const hours = Math.floor(minutes / 60);
+            const remainingMins = minutes % 60;
+            let timeStr = hours > 0 ? (remainingMins > 0 ? `${hours} Saat ${remainingMins} Dk` : `${hours} Saat`) : `${remainingMins} Dk`;
+            
+            document.getElementById('pss-duration').innerHTML = `${timeStr}`;
+
+            // Kutuya öneri olarak otomatik yaz
+            if (descInput) {
+                const plNames = [...new Set(currentTaskVideos.map(v => v.plTitle || "Playlist"))];
+                descInput.value = `"${plNames.join(', ')}" listesinden ${currentTaskVideos.length} adet video eklendi.`;
+            }
+            if (durInput) {
+                durInput.value = minutes;
+            }
+        };
+
+        // Kutu içindeki minik 'X'e basıldığında
+        window.removeVideoFromTask = async function(plId, idx) {
+            currentTaskVideos = currentTaskVideos.filter(v => !(v.plId.toString() === plId.toString() && v.index === idx));
+            
+            // Firebase'den plandan düşür ("Plana Eklendi" yazısı kalksın diye)
+            const pl = savedPlaylists.find(p => p.id.toString() === plId.toString());
+            if(pl && pl.videos && pl.videos[idx]) {
+                pl.videos[idx].isPlanned = false;
+                try {
+                    if(currentUserUid) await setDoc(doc(db, "users", currentUserUid, "userPlaylists", pl.id.toString()), pl, { merge: true });
+                } catch(e) {}
+            }
+            window.renderTaskVideoSummary();
+        };
+
+        // Kapatma ve Geri Dönme İşlevleri
+        document.getElementById('closeSelectPlaylistModalBtn')?.addEventListener('click', () => { document.getElementById('selectPlaylistModal').style.display = 'none'; });
+        document.getElementById('closeSelectVideoModalBtn')?.addEventListener('click', () => { document.getElementById('selectVideoModal').style.display = 'none'; });
+        document.getElementById('backToPlaylistsBtn')?.addEventListener('click', () => { 
+            document.getElementById('selectVideoModal').style.display = 'none';
+            document.getElementById('selectPlaylistModal').style.display = 'flex';
+        });
+
+        // =================================================================
+        // --- BÜYÜK EKRAN DENEME ANALİZ MERKEZİ (GENEL + DERS GRAFİKLERİ) ---
+        // =================================================================
+        const expandedExamsModal = document.getElementById('expandedExamsModal');
+        const openExpandedExamsBtn = document.getElementById('openExpandedExamsBtn');
+        const closeExpandedExamsBtn = document.getElementById('closeExpandedExamsBtn');
+        const expandedTabTyt = document.getElementById('expandedTabTyt');
+        const expandedTabAyt = document.getElementById('expandedTabAyt');
+
+        let expandedMainChartInstance = null;
+        let expandedSubjectChartInstances = {};
+        let currentExpandedTab = 'tyt';
+
+        // Modalı Aç/Kapat Dinleyicileri
+        if(openExpandedExamsBtn) {
+            openExpandedExamsBtn.addEventListener('click', () => {
+                expandedExamsModal.style.display = 'flex';
+                renderExpandedExamsView();
+            });
+        }
+        if(closeExpandedExamsBtn) {
+            closeExpandedExamsBtn.addEventListener('click', () => {
+                expandedExamsModal.style.display = 'none';
+            });
+        }
+
+        // Sekme Değiştirme (TYT / AYT)
+        if(expandedTabTyt && expandedTabAyt) {
+            expandedTabTyt.addEventListener('click', () => {
+                expandedTabTyt.classList.add('active');
+                expandedTabAyt.classList.remove('active');
+                currentExpandedTab = 'tyt';
+                renderExpandedExamsView();
+            });
+            expandedTabAyt.addEventListener('click', () => {
+                expandedTabAyt.classList.add('active');
+                expandedTabTyt.classList.remove('active');
+                currentExpandedTab = 'ayt';
+                renderExpandedExamsView();
+            });
+        }
+
+        let isExpandedExamDeleteMode = false;
+        let expandedExamsToDelete = new Set();
+        
+        let advExamFilter = { preset: 'all', start: '', end: '', subject: 'total', min: '', max: '' };
+        let advExamSort = { criteria: 'date-desc', subject: 'total' };
+
+        // TYT / AYT Sekme Değişimi ve AYT Alan Gösterimi
+        if(expandedTabTyt && expandedTabAyt) {
+            expandedTabTyt.addEventListener('click', () => {
+                expandedTabTyt.classList.add('active'); expandedTabAyt.classList.remove('active');
+                currentExpandedTab = 'tyt';
+                document.getElementById('expandedAytTrackSelector').style.display = 'none';
+                window.renderExpandedExamsView();
+            });
+            expandedTabAyt.addEventListener('click', () => {
+                expandedTabAyt.classList.add('active'); expandedTabTyt.classList.remove('active');
+                currentExpandedTab = 'ayt';
+                document.getElementById('expandedAytTrackSelector').style.display = 'block';
+                window.renderExpandedExamsView();
+            });
+        }
+
+        // ÖZEL MENÜ DİNLEYİCİSİ (AÇILIR MENÜ DEĞİŞİMLERİNDE TETİKLENİR)
+        document.addEventListener('click', function(e) {
+            const option = e.target.closest('.tcs-option');
+            if(option) {
+                const hiddenInput = option.closest('.task-custom-select').querySelector('input[type="hidden"]');
+                if(!hiddenInput) return;
+                
+                // Sistemin değer atamasını beklemeden direkt kullanıcının tıkladığı değeri yakalıyoruz
+                const selectedVal = option.getAttribute('data-value'); 
+                
+                if(hiddenInput.id === 'ef-datePreset') {
+                    document.getElementById('ef-customDateGroup').style.display = selectedVal === 'custom' ? 'flex' : 'none';
+                }
+                if(hiddenInput.id === 'es-criteria') {
+                    document.getElementById('es-subjectGroup').style.display = selectedVal.includes('net') ? 'block' : 'none';
+                }
+                if(hiddenInput.id === 'ef-subject') {
+                    window.updateMaxNetLimits(selectedVal);
+                }
+                if(hiddenInput.id === 'expandedAytTrack') {
+                    setTimeout(() => window.renderExpandedExamsView(), 50);
+                }
+            }
+        }, true); // <--- İŞTE BU "true" KELİMESİ BÜTÜN TIKLAMA SORUNLARINI ÇÖZER! (Yakalama Evresi)
+
+        // YENİ: ÖZEL BİLDİRİM (TOAST) MOTORU (ARTIK BALONUN TAM ÜSTÜNDE BELİRİR)
+        window.showCustomToast = function(title, message, type = 'error') {
+            const toast = document.getElementById('customToast');
+            const icon = document.getElementById('toastIcon');
+            if(!toast) return;
+            
+            if(type === 'error') {
+                toast.style.borderLeftColor = '#d9534f';
+                icon.className = 'fa-solid fa-circle-exclamation';
+                icon.style.color = '#d9534f';
+            }
+            
+            document.getElementById('toastTitle').innerText = title;
+            document.getElementById('toastMessage').innerText = message;
+            
+            // Yukarı doğru kayarak belirme animasyonu
+            toast.style.transform = 'translate(-50%, 0)';
+            toast.style.opacity = '1';
+            toast.style.visibility = 'visible';
+            
+            // 3.5 saniye sonra tekrar aşağı kayarak gizlenme animasyonu
+            setTimeout(() => { 
+                toast.style.transform = 'translate(-50%, 20px)';
+                toast.style.opacity = '0';
+                toast.style.visibility = 'hidden';
+            }, 3500); 
+        };
+
+        // YENİ: ÖZEL ARTIR/AZALT BUTONLARININ (0.25) MATEMATİĞİ
+        const handleNetSpin = (inputId, isUp) => {
+            const input = document.getElementById(inputId);
+            if(!input) return;
+            
+            let val = parseFloat(input.value);
+            if (isNaN(val)) val = 0;
+            
+            // 0.25 Net ekler veya çıkarır
+            val += isUp ? 0.25 : -0.25;
+            
+            // Net eksiye düşmesin diye güvenlik kilidi
+            if (val < 0) val = 0; 
+            
+            input.value = val;
+            window.validateNetsRealtime(); // Rakam değiştiği an kırmızı kutu kalkanını çalıştır
+        };
+
+        document.getElementById('ef-minUp')?.addEventListener('click', () => handleNetSpin('ef-minNet', true));
+        document.getElementById('ef-minDown')?.addEventListener('click', () => handleNetSpin('ef-minNet', false));
+        document.getElementById('ef-maxUp')?.addEventListener('click', () => handleNetSpin('ef-maxNet', true));
+        document.getElementById('ef-maxDown')?.addEventListener('click', () => handleNetSpin('ef-maxNet', false));
+
+        // YENİ: GERÇEK ZAMANLI NET KONTROLÜ (KIRMIZI KUTU VE YAZI)
+        window.validateNetsRealtime = function() {
+            const minInput = document.getElementById('ef-minNet');
+            const maxInput = document.getElementById('ef-maxNet');
+            const errBox = document.getElementById('ef-netErrorText');
+            if(!minInput || !maxInput || !errBox) return;
+
+            const currentSubj = document.getElementById('ef-subject').value;
+            const examMaxNets = {
+                'tyt': { 'total': 120, 'Türkçe': 40, 'Sosyal Bilimler': 20, 'Temel Matematik': 40, 'Fen Bilimleri': 20 },
+                'ayt': { 'total': 80, 'Matematik': 40, 'Fizik': 14, 'Kimya': 13, 'Biyoloji': 13, 'Türk Dili ve Edebiyatı': 24, 'Tarih-1': 10, 'Coğrafya-1': 6, 'Tarih-2': 11, 'Coğrafya-2': 11, 'Felsefe Grubu': 12, 'Din Kültürü': 6, 'Yabancı Dil': 80 }
+            };
+            const currentLimit = examMaxNets[currentExpandedTab][currentSubj] || 120;
+            const subjName = currentSubj === 'total' ? (currentExpandedTab === 'tyt' ? 'Genel TYT' : 'Genel AYT') : currentSubj;
+
+            let hasError = false;
+            const minV = parseFloat(minInput.value);
+            const maxV = parseFloat(maxInput.value);
+
+            minInput.style.borderColor = '#cce5ff'; minInput.style.backgroundColor = '#fff';
+            maxInput.style.borderColor = '#cce5ff'; maxInput.style.backgroundColor = '#fff';
+
+            if (!isNaN(minV) && minV > currentLimit) {
+                hasError = true;
+                minInput.style.borderColor = '#d9534f'; minInput.style.backgroundColor = '#ffeaea';
+            }
+            if (!isNaN(maxV) && maxV > currentLimit) {
+                hasError = true;
+                maxInput.style.borderColor = '#d9534f'; maxInput.style.backgroundColor = '#ffeaea';
+            }
+
+            if (hasError) {
+                errBox.style.display = 'block';
+                errBox.querySelector('span').innerText = `${subjName} dersinin toplam soru sayısı ${currentLimit}'dir.`;
+            } else {
+                errBox.style.display = 'none';
+            }
+        };
+
+        document.getElementById('ef-minNet')?.addEventListener('input', window.validateNetsRealtime);
+        document.getElementById('ef-maxNet')?.addEventListener('input', window.validateNetsRealtime);
+
+        // AKILLI NET LİMİTİ BELİRLEYİCİ (MAX SINIRLAR VE DİNAMİK ÖRNEKLER)
+        window.updateMaxNetLimits = function(subject) {
+            const maxInput = document.getElementById('ef-maxNet');
+            const minInput = document.getElementById('ef-minNet');
+            
+            const examMaxNets = {
+                'tyt': { 'total': 120, 'Türkçe': 40, 'Sosyal Bilimler': 20, 'Temel Matematik': 40, 'Fen Bilimleri': 20 },
+                'ayt': { 'total': 80, 'Matematik': 40, 'Fizik': 14, 'Kimya': 13, 'Biyoloji': 13, 'Türk Dili ve Edebiyatı': 24, 'Tarih-1': 10, 'Coğrafya-1': 6, 'Tarih-2': 11, 'Coğrafya-2': 11, 'Felsefe Grubu': 12, 'Din Kültürü': 6, 'Yabancı Dil': 80 }
+            };
+            
+            const maxVal = examMaxNets[currentExpandedTab][subject] || 120;
+            const exampleMin = Math.max(1, Math.floor(maxVal * 0.3));
+            const exampleMax = Math.max(1, Math.floor(maxVal * 0.85));
+
+            minInput.placeholder = `Min Net (Örn: ${exampleMin})`;
+            maxInput.placeholder = `Max Net (Örn: ${exampleMax})`;
+            
+            // YENİ: Alan değişince kırmızılığı kontrol et
+            window.validateNetsRealtime();
+        };
+
+        // --- FİLTRE VE SIRALAMA MODALLARINI YÖNETME ---
+        window.populateExamDynamicSelects = function() {
+            let allSubs = new Set();
+            let trackExams = savedExams.filter(e => e.type === currentExpandedTab);
+            if(currentExpandedTab === 'ayt') {
+                const trk = document.getElementById('expandedAytTrack').value;
+                trackExams = trackExams.filter(e => e.track === trk);
+            }
+            trackExams.forEach(ex => { if(ex.subjects) ex.subjects.forEach(s => allSubs.add(s.name)); });
+            
+            let html = `<div class="tcs-option" data-value="total">Genel (Toplam Net)</div>`;
+            allSubs.forEach(sub => html += `<div class="tcs-option" data-value="${sub}">${sub}</div>`);
+            
+            document.getElementById('ef-subject-options').innerHTML = html;
+            document.getElementById('es-subject-options').innerHTML = html;
+        };
+
+        // YENİ: Arayüzü (Menüleri) Arka Plandaki Hafızayla Eşitleme Motoru
+        window.syncExamModalsWithState = function() {
+            const updateCustomSelect = (inputId, val) => {
+                const hiddenInput = document.getElementById(inputId);
+                if (!hiddenInput) return;
+                hiddenInput.value = val;
+                
+                const wrapper = hiddenInput.closest('.task-custom-select');
+                if(!wrapper) return;
+                
+                const options = wrapper.querySelectorAll('.tcs-option');
+                let foundText = "";
+                options.forEach(opt => {
+                    if(opt.getAttribute('data-value') === val) {
+                        opt.classList.add('selected');
+                        foundText = opt.innerText;
+                    } else {
+                        opt.classList.remove('selected');
+                    }
+                });
+                
+                // Eğer filtrelenen bir ders silinmişse (Artık yoksa) otomatik olarak Genel'e dön (Hata önleyici kalkan)
+                if (!foundText && val !== 'total') {
+                    updateCustomSelect(inputId, 'total');
+                    return;
+                }
+                
+                const textSpan = wrapper.querySelector('.tcs-text');
+                if(textSpan && foundText) textSpan.innerText = foundText;
+            };
+
+            // 1. Filtre Modalı Senkronizasyonu
+            updateCustomSelect('ef-datePreset', advExamFilter.preset);
+            document.getElementById('ef-customDateGroup').style.display = advExamFilter.preset === 'custom' ? 'flex' : 'none';
+            document.getElementById('ef-startDate').value = advExamFilter.start;
+            document.getElementById('ef-endDate').value = advExamFilter.end;
+            
+            updateCustomSelect('ef-subject', advExamFilter.subject);
+            document.getElementById('ef-minNet').value = advExamFilter.min;
+            document.getElementById('ef-maxNet').value = advExamFilter.max;
+            window.updateMaxNetLimits(advExamFilter.subject);
+
+            // 2. Sıralama Modalı Senkronizasyonu
+            updateCustomSelect('es-criteria', advExamSort.criteria);
+            document.getElementById('es-subjectGroup').style.display = advExamSort.criteria.includes('net') ? 'block' : 'none';
+            updateCustomSelect('es-subject', advExamSort.subject);
+        };
+
+        // Modal Açılışları (Açılırken artık hafızadaki durumlarıyla gelecekler!)
+        document.getElementById('openExamFilterBtn')?.addEventListener('click', () => {
+            window.populateExamDynamicSelects();
+            window.syncExamModalsWithState(); 
+            document.getElementById('examFilterModal').style.display = 'flex';
+        });
+        document.getElementById('openExamSortBtn')?.addEventListener('click', () => {
+            window.populateExamDynamicSelects();
+            window.syncExamModalsWithState(); 
+            document.getElementById('examSortModal').style.display = 'flex';
+        });
+        
+        // Kapanışlar
+        document.getElementById('closeExamFilterModalBtn')?.addEventListener('click', () => document.getElementById('examFilterModal').style.display = 'none');
+        document.getElementById('closeExamSortModalBtn')?.addEventListener('click', () => document.getElementById('examSortModal').style.display = 'none');
+        document.getElementById('cancelExamSortBtn')?.addEventListener('click', () => document.getElementById('examSortModal').style.display = 'none');
+
+        // SIFIRLAMA BUTONLARI (X)
+        document.getElementById('resetExamFilterBtn')?.addEventListener('click', () => {
+            advExamFilter = { preset: 'all', start: '', end: '', subject: 'total', min: '', max: '' };
+            window.renderExpandedExamsView();
+        });
+        document.getElementById('resetExamSortBtn')?.addEventListener('click', () => {
+            advExamSort = { criteria: 'date-desc', subject: 'total' };
+            window.renderExpandedExamsView();
+        });
+
+        // FİLTRE UYGULAMA (GELİŞMİŞ GÜVENLİK VE MAX NET KONTROLÜ)
+        document.getElementById('applyExamFilterBtn')?.addEventListener('click', () => {
+            const startD = document.getElementById('ef-startDate').value;
+            const endD = document.getElementById('ef-endDate').value;
+            
+            if(document.getElementById('ef-datePreset').value === 'custom' && startD && endD) {
+                if(new Date(startD) > new Date(endD)) {
+                    window.showCustomToast("Hatalı Tarih Yazımı", "Başlangıç tarihi bitiş tarihinden sonra olamaz.", "error");
+                    return;
+                }
+            }
+            
+            const minV = parseFloat(document.getElementById('ef-minNet').value);
+            const maxV = parseFloat(document.getElementById('ef-maxNet').value);
+            const currentSubj = document.getElementById('ef-subject').value;
+            
+            const examMaxNets = {
+                'tyt': { 'total': 120, 'Türkçe': 40, 'Sosyal Bilimler': 20, 'Temel Matematik': 40, 'Fen Bilimleri': 20 },
+                'ayt': { 'total': 80, 'Matematik': 40, 'Fizik': 14, 'Kimya': 13, 'Biyoloji': 13, 'Türk Dili ve Edebiyatı': 24, 'Tarih-1': 10, 'Coğrafya-1': 6, 'Tarih-2': 11, 'Coğrafya-2': 11, 'Felsefe Grubu': 12, 'Din Kültürü': 6, 'Yabancı Dil': 80 }
+            };
+            const currentLimit = examMaxNets[currentExpandedTab][currentSubj] || 120;
+
+            if(!isNaN(minV) && minV > currentLimit) {
+                window.showCustomToast("Hatalı Net Yazımı", `Seçtiğin alan için en fazla ${currentLimit} net girebilirsin.`, "error");
+                return;
+            }
+            if(!isNaN(maxV) && maxV > currentLimit) {
+                window.showCustomToast("Hatalı Net Yazımı", `Seçtiğin alan için en fazla ${currentLimit} net girebilirsin.`, "error");
+                return;
+            }
+            if(!isNaN(minV) && !isNaN(maxV) && minV > maxV) {
+                window.showCustomToast("Hatalı Net Yazımı", "Minimum net, maksimum netten büyük olamaz.", "error");
+                return;
+            }
+            
+            advExamFilter.preset = document.getElementById('ef-datePreset').value;
+            advExamFilter.start = startD;
+            advExamFilter.end = endD;
+            advExamFilter.subject = currentSubj;
+            advExamFilter.min = document.getElementById('ef-minNet').value;
+            advExamFilter.max = document.getElementById('ef-maxNet').value;
+            
+            window.renderExpandedExamsView();
+            document.getElementById('examFilterModal').style.display = 'none';
+        });
+
+        // SIRALAMA UYGULAMA
+        document.getElementById('applyExamSortBtn')?.addEventListener('click', () => {
+            advExamSort.criteria = document.getElementById('es-criteria').value;
+            advExamSort.subject = document.getElementById('es-subject').value;
+            window.renderExpandedExamsView();
+            document.getElementById('examSortModal').style.display = 'none';
+        });
+
+        // --- ANA ÇİZİM VE FİLTRELEME MOTORU ---
+        window.renderExpandedExamsView = function() {
+            const listContainer = document.getElementById('expandedExamsList');
+            const mainChartCanvas = document.getElementById('expandedMainChart');
+            const subjectsContainer = document.getElementById('expandedSubjectChartsContainer');
+            const countDisplay = document.getElementById('expandedExamCount');
+
+            if(!listContainer || !mainChartCanvas || !subjectsContainer) return;
+
+            // 0. TEMEL FİLTRE (TYT / AYT + Alan)
+            let filtered = savedExams.filter(e => e.type === currentExpandedTab);
+            if(currentExpandedTab === 'ayt') {
+                const trk = document.getElementById('expandedAytTrack').value;
+                filtered = filtered.filter(e => e.track === trk);
+            }
+
+            // 1. ZAMAN FİLTRESİ
+            if(advExamFilter.preset === 'last30') {
+                const limitDate = new Date(); limitDate.setDate(limitDate.getDate() - 30);
+                filtered = filtered.filter(e => new Date(e.date) >= limitDate);
+            } else if(advExamFilter.preset === 'last90') {
+                const limitDate = new Date(); limitDate.setDate(limitDate.getDate() - 90);
+                filtered = filtered.filter(e => new Date(e.date) >= limitDate);
+            } else if(advExamFilter.preset === 'custom' && advExamFilter.start && advExamFilter.end) {
+                const sD = new Date(advExamFilter.start); 
+                const eD = new Date(advExamFilter.end);
+                // YENİ: Bitiş tarihini gece 23:59:59 yaparak o günü de dahil ediyoruz
+                eD.setHours(23, 59, 59, 999);
+                filtered = filtered.filter(e => { const d = new Date(e.date); return d >= sD && d <= eD; });
+            }
+
+            // 2. NET FİLTRESİ
+            if(advExamFilter.min !== '' || advExamFilter.max !== '') {
+                filtered = filtered.filter(e => {
+                    let targetNet = 0;
+                    if(advExamFilter.subject === 'total') targetNet = parseFloat(e.net);
+                    else {
+                        const s = e.subjects?.find(sub => sub.name === advExamFilter.subject);
+                        targetNet = s ? parseFloat(s.net) : 0;
+                    }
+                    let meetsMin = advExamFilter.min === '' || targetNet >= parseFloat(advExamFilter.min);
+                    let meetsMax = advExamFilter.max === '' || targetNet <= parseFloat(advExamFilter.max);
+                    return meetsMin && meetsMax;
+                });
+            }
+
+            let sortedForCharts = [...filtered].sort((a,b) => new Date(a.date) - new Date(b.date));
+
+            // 3. GELİŞMİŞ SIRALAMA
+            let sortedForList = [...filtered];
+            if(advExamSort.criteria === 'date-desc') sortedForList.sort((a,b) => new Date(b.date) - new Date(a.date));
+            if(advExamSort.criteria === 'date-asc') sortedForList.sort((a,b) => new Date(a.date) - new Date(b.date));
+            if(advExamSort.criteria === 'net-desc' || advExamSort.criteria === 'net-asc') {
+                sortedForList.sort((a,b) => {
+                    let netA = 0, netB = 0;
+                    if(advExamSort.subject === 'total') {
+                        netA = parseFloat(a.net); netB = parseFloat(b.net);
+                    } else {
+                        const sA = a.subjects?.find(sub => sub.name === advExamSort.subject);
+                        const sB = b.subjects?.find(sub => sub.name === advExamSort.subject);
+                        netA = sA ? parseFloat(sA.net) : -1;
+                        netB = sB ? parseFloat(sB.net) : -1;
+                    }
+                    return advExamSort.criteria === 'net-desc' ? netB - netA : netA - netB;
+                });
+            }
+
+            countDisplay.innerText = sortedForList.length;
+
+            // X BUTONLARININ GÖRÜNÜRLÜĞÜ (Filtre veya sıralama varsa kırmızı X butonunu göster)
+            const btnSortReset = document.getElementById('resetExamSortBtn');
+            const btnFilterReset = document.getElementById('resetExamFilterBtn');
+            if(btnSortReset) btnSortReset.style.display = (advExamSort.criteria !== 'date-desc' || advExamSort.subject !== 'total') ? 'flex' : 'none';
+            if(btnFilterReset) btnFilterReset.style.display = (advExamFilter.preset !== 'all' || advExamFilter.min !== '' || advExamFilter.max !== '') ? 'flex' : 'none';
+
+            // 4. LİSTEYİ EKRANA ÇİZME
+            listContainer.innerHTML = '';
+            if(sortedForList.length === 0) {
+                listContainer.innerHTML = `
+                    <div style="text-align:center; padding: 40px 20px; color:#aaa;">
+                        <i class="fa-solid fa-chart-line" style="font-size:40px; color:#cce5ff; margin-bottom:15px; display:block;"></i>
+                        <span style="font-weight:700; font-size:13px;">Kriterlere uygun deneme bulunamadı.</span>
+                    </div>`;
+            } else {
+                sortedForList.forEach(ex => {
+                    const isTargeted = isExpandedExamDeleteMode && expandedExamsToDelete.has(ex.id);
+                    const bgStyle = isTargeted ? 'background:#ffeaea; border: 2px solid #d9534f;' : 'background:#fff; border: 1px solid #e1e9f0;';
+                    const clickAction = isExpandedExamDeleteMode ? `window.toggleExpandedExamSelection(${ex.id})` : `window.viewExamDetails(${ex.id})`;
+
+                    listContainer.innerHTML += `
+                        <div style="${bgStyle} padding:12px 15px; border-radius:12px; cursor:pointer; transition:all 0.1s; box-shadow: 0 2px 4px rgba(0,0,0,0.02); display:flex; align-items:center;" 
+                             onmouseover="if(!${isTargeted}){this.style.transform='translateY(-2px)'; this.style.borderColor='#cce5ff';}" 
+                             onmouseout="if(!${isTargeted}){this.style.transform='translateY(0)'; this.style.borderColor='#e1e9f0';}" 
+                             onclick="${clickAction}">
+                            <div style="flex:1; overflow:hidden;">
+                                <div style="font-weight:800; color:#333; font-size:13px; margin-bottom:6px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${ex.title}</div>
+                                <div style="display:flex; justify-content:space-between; align-items:center;">
+                                    <span style="font-size:11px; font-weight:700; color:#888;"><i class="fa-regular fa-calendar"></i> ${formatDateToTurkish(ex.date)}</span>
+                                    <span style="font-weight:900; color:#17a2b8; background:#e0f7fa; padding:2px 8px; border-radius:6px; font-size:12px;">${parseFloat(ex.net).toFixed(2)} Net</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            // 5. GRAFİKLER İÇİN VERİ HAZIRLIĞI
+            const labels = sortedForCharts.map(e => formatDateToTurkish(e.date));
+            const titles = sortedForCharts.map(e => e.title);
+            const mainNets = sortedForCharts.map(e => parseFloat(e.net));
+
+            const subjectMap = {}; 
+            const allSubjects = new Set();
+            sortedForCharts.forEach(ex => { if(ex.subjects) ex.subjects.forEach(s => allSubjects.add(s.name)); });
+            allSubjects.forEach(sub => subjectMap[sub] = []);
+
+            sortedForCharts.forEach(ex => {
+                allSubjects.forEach(sub => {
+                    if(ex.subjects) {
+                        const subData = ex.subjects.find(s => s.name === sub);
+                        if(subData) subjectMap[sub].push(parseFloat(subData.net));
+                        else subjectMap[sub].push(null); 
+                    } else subjectMap[sub].push(null); 
+                });
+            });
+
+            // 6. ANA GRAFİĞİ ÇİZ
+            if(expandedMainChartInstance) expandedMainChartInstance.destroy();
+            const mainColor = currentExpandedTab === 'tyt' ? '#007bff' : '#ffc107';
+            const mainBgColor = currentExpandedTab === 'tyt' ? 'rgba(0, 123, 255, 0.15)' : 'rgba(255, 193, 7, 0.15)';
+
+            expandedMainChartInstance = new Chart(mainChartCanvas, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Genel Net', data: mainNets, borderColor: mainColor, backgroundColor: mainBgColor,
+                        borderWidth: 3, pointBackgroundColor: '#fff', pointBorderColor: mainColor, pointBorderWidth: 3,
+                        pointRadius: 6, pointHoverRadius: 8, fill: true, tension: 0.3 
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgba(0,0,0,0.8)', titleFont: { size: 13 }, bodyFont: { size: 14, weight: 'bold' }, callbacks: { title: (ctx) => titles[ctx[0].dataIndex] + '\n(' + labels[ctx[0].dataIndex] + ')', label: (ctx) => ' ' + ctx.parsed.y + ' Net' } } },
+                    scales: { x: { grid: { display: false }, ticks: { font: { weight: 'bold' } } }, y: { beginAtZero: true, border: { dash: [5, 5] }, grid: { color: '#f0f4f8' } } }
+                }
+            });
+
+            // 7. ALT GRAFİKLERİ ÇİZ
+            subjectsContainer.innerHTML = '';
+            for(let key in expandedSubjectChartInstances) { if(expandedSubjectChartInstances[key]) expandedSubjectChartInstances[key].destroy(); }
+            expandedSubjectChartInstances = {};
+
+            const subjectColors = ['#28a745', '#17a2b8', '#6610f2', '#e83e8c', '#fd7e14', '#20c997', '#d63384', '#6c757d', '#007bff'];
+            let colorIndex = 0;
+            
+            allSubjects.forEach(sub => {
+                if(!subjectMap[sub].some(val => val !== null)) return;
+                const id = 'subjChart_' + sub.replace(/[\s-]/g, ''); 
+                subjectsContainer.innerHTML += `
+                    <div style="background: #fff; border-radius: 14px; padding: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.02); border: 1px solid #eef2f5;">
+                        <h5 style="margin-bottom: 10px; color: #444; font-size: 14px; text-align:center; font-weight: 800;">${sub}</h5>
+                        <div style="height: 170px; position: relative;"><canvas id="${id}"></canvas></div>
+                    </div>`;
+            });
+
+            allSubjects.forEach(sub => {
+                if(!subjectMap[sub].some(val => val !== null)) return;
+                const canvas = document.getElementById('subjChart_' + sub.replace(/[\s-]/g, ''));
+                if(!canvas) return;
+                const color = subjectColors[colorIndex % subjectColors.length]; colorIndex++;
+
+                expandedSubjectChartInstances[sub] = new Chart(canvas, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: sub + ' Neti', data: subjectMap[sub], borderColor: color, backgroundColor: color + '20', 
+                            borderWidth: 2, pointBackgroundColor: '#fff', pointBorderColor: color, pointBorderWidth: 2,
+                            pointRadius: 4, pointHoverRadius: 6, spanGaps: true, fill: true, tension: 0.2
+                        }]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        plugins: { legend: { display: false }, tooltip: { callbacks: { title: (ctx) => titles[ctx[0].dataIndex] + '\n(' + labels[ctx[0].dataIndex] + ')', label: (ctx) => ' ' + ctx.parsed.y + ' Net' } } },
+                        scales: { x: { display: true, grid: { display: false }, ticks: { font: { size: 9 }, maxRotation: 45 } }, y: { beginAtZero: true, border: { dash: [3, 3] }, grid: { color: '#f8f9fa' } } }
+                    }
+                });
+            });
+        };
+
+        // --- ÇOKLU DENEME SİLME MODU ---
+        window.toggleExpandedExamSelection = function(id) {
+            if(expandedExamsToDelete.has(id)) expandedExamsToDelete.delete(id);
+            else expandedExamsToDelete.add(id);
+            
+            document.getElementById('confirmExamDeleteBtn').innerText = `Sil (${expandedExamsToDelete.size})`;
+            window.renderExpandedExamsView();
+        };
+
+        document.getElementById('toggleExamDeleteModeBtn')?.addEventListener('click', () => {
+            isExpandedExamDeleteMode = true;
+            expandedExamsToDelete.clear();
+            document.getElementById('confirmExamDeleteBtn').innerText = `Sil (0)`;
+            document.getElementById('examDefaultActionBtns').style.display = 'none';
+            document.getElementById('examDeleteActionBtns').style.display = 'flex';
+            window.renderExpandedExamsView();
+        });
+
+        document.getElementById('cancelExamDeleteBtn')?.addEventListener('click', () => {
+            isExpandedExamDeleteMode = false;
+            expandedExamsToDelete.clear();
+            document.getElementById('examDeleteActionBtns').style.display = 'none';
+            document.getElementById('examDefaultActionBtns').style.display = 'flex';
+            window.renderExpandedExamsView();
+        });
+
+        document.getElementById('confirmExamDeleteBtn')?.addEventListener('click', async () => {
+            if(expandedExamsToDelete.size === 0) { alert("Lütfen silmek için en az bir deneme seçin kanka."); return; }
+            if(confirm(`Seçilen ${expandedExamsToDelete.size} denemeyi kalıcı olarak silmek istediğinize emin misiniz?`)) {
+                const btn = document.getElementById('confirmExamDeleteBtn');
+                btn.innerText = "Siliniyor...";
+                try {
+                    for(let id of expandedExamsToDelete) {
+                        if(currentUserUid) await deleteDoc(doc(db, "users", currentUserUid, "userExams", id.toString()));
+                        savedExams = savedExams.filter(e => e.id !== id);
+                    }
+                    isExpandedExamDeleteMode = false; expandedExamsToDelete.clear();
+                    document.getElementById('examDeleteActionBtns').style.display = 'none';
+                    document.getElementById('examDefaultActionBtns').style.display = 'flex';
+                    btn.innerText = "Sil (0)";
+                    if(typeof window.renderExamsToScreen === 'function') window.renderExamsToScreen(); 
+                } catch(e) {
+                    console.error("Silme hatası:", e);
+                    alert("Sistem Hatası: Denemeler silinirken bir sorun oluştu.");
+                    btn.innerText = `Sil (${expandedExamsToDelete.size})`;
+                }
+            }
+        });
+
+        // YENİ BİR DENEME EKLENDİĞİNDE VEYA SİLİNDİĞİNDE OTOMATİK GÜNCELLENMESİ İÇİN KANCA!
+        // Eski "renderExamsToScreen" fonksiyonunu devralıp üstüne kancayı ekliyoruz
+        const originalRenderExamsToScreen = window.renderExamsToScreen;
+        window.renderExamsToScreen = function() {
+            if(typeof originalRenderExamsToScreen === 'function') originalRenderExamsToScreen();
+            
+            // Eğer Büyük Analiz ekranı açıksa onu da anında güncelle
+            if (expandedExamsModal && expandedExamsModal.style.display === 'flex') {
+                renderExpandedExamsView();
+            }
+        };
 
     </script>
 
